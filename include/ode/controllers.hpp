@@ -1,0 +1,84 @@
+#pragma once
+
+#include "state.hpp"
+#include <algorithm>
+#include <cmath>
+
+namespace ode {
+
+// ─── Contrôleur à pas fixe ───────────────────────────────────────────────────
+
+class FixedController {
+public:
+    explicit FixedController(double dt) : dt_(dt) {}
+
+    double dt() const { return dt_; }
+
+    // Toujours accepté, pas ne change pas
+    template<typename... Args>
+    bool accept(Args&&...) { return true; }
+
+private:
+    double dt_;
+};
+
+// ─── Contrôleur adaptatif (I-controller standard) ────────────────────────────
+// Basé sur la norme mixte relative/absolue par composante
+// Facteur de sécurité : 0.9, exposant : 1/(q+1) avec q = ordre de l'erreur
+
+class AdaptiveController {
+public:
+    AdaptiveController(double dt_init, double rtol, double atol,
+                       double dt_min = 1e-12, double dt_max = 1.0,
+                       int error_order = 3)
+        : dt_(dt_init), rtol_(rtol), atol_(atol)
+        , dt_min_(dt_min), dt_max_(dt_max)
+        , exponent_(1.0 / error_order)
+    {}
+
+    // Norme scalaire : erreur normalisée sur un état scalaire
+    bool accept(double err, double y)
+    {
+        double sc = atol_ + rtol_ * std::abs(y);
+        double e  = std::abs(err) / sc;
+        return update(e);
+    }
+
+    // Norme vectorielle : on passe la norme globale pre-calculée
+    // L'appelant doit calculer norm(error / (atol + rtol * |y|))
+    bool accept_normalized(double e_norm)
+    {
+        return update(e_norm);
+    }
+
+    double dt() const { return dt_; }
+
+private:
+    bool update(double e)
+    {
+        // Facteur de mise à l'échelle : safety * (1/e)^(1/(q+1))
+        constexpr double safety   = 0.9;
+        constexpr double min_fac  = 0.2;
+        constexpr double max_fac  = 10.0;
+
+        double factor = safety * std::pow(1.0 / std::max(e, 1e-10), exponent_);
+        factor = std::clamp(factor, min_fac, max_fac);
+
+        if (e <= 1.0) {
+            // Pas accepté : on peut agrandir
+            dt_ = std::clamp(dt_ * factor, dt_min_, dt_max_);
+            return true;
+        } else {
+            // Pas rejeté : on réduit
+            dt_ = std::clamp(dt_ * factor, dt_min_, dt_max_);
+            return false;
+        }
+    }
+
+    double dt_;
+    double rtol_, atol_;
+    double dt_min_, dt_max_;
+    double exponent_;
+};
+
+} // namespace ode
