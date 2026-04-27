@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "test_problems.hpp"
-#include "../include/ode.hpp"
+#include "ode.hpp"
 
 using namespace ode;
 using namespace ode::test;
@@ -13,7 +13,7 @@ using Catch::Matchers::WithinAbs;
 // Tests Velocity Verlet
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Verlet - oscillateur harmonique : retour à CI après une période", "[verlet][oscillator]")
+TEST_CASE("Verlet - harmonic oscillator : return to initial conditions after one period", "[verlet][oscillator]")
 {
     // x'' = -ω²x, x(0)=1, x'(0)=0  →  x(t) = cos(t), T = 2π
     auto prob = make_separable(
@@ -30,7 +30,7 @@ TEST_CASE("Verlet - oscillateur harmonique : retour à CI après une période", 
     CHECK_THAT(sol.y.back(), WithinAbs(1.0, 1e-5));
 }
 
-TEST_CASE("Verlet - conservation de l'énergie (oscillateur)", "[verlet][energy]")
+TEST_CASE("Verlet - energy conservation (harmonic oscillator)", "[verlet][energy]")
 {
     // E = 0.5*v² + 0.5*x² = 0.5 (constante pour ω=1, x0=1, v0=0)
     // Verlet est symplectique → E oscille mais ne dérive pas séculairement
@@ -58,7 +58,7 @@ TEST_CASE("Verlet - conservation de l'énergie (oscillateur)", "[verlet][energy]
     CHECK(E_max_drift < 1e-4);
 }
 
-TEST_CASE("Verlet - Kepler orbite circulaire : conservation de l'énergie", "[verlet][kepler]")
+TEST_CASE("Verlet - Kepler circular orbit : energy conservation", "[verlet][kepler]")
 {
     // r0 = (1,0), v0 = (0,1) → orbite circulaire, E = -0.5
     auto prob = make_separable(
@@ -91,7 +91,7 @@ TEST_CASE("Verlet - Kepler orbite circulaire : conservation de l'énergie", "[ve
     CHECK(E_max_drift < 1e-3);
 }
 
-TEST_CASE("Verlet - Kepler : retour à position initiale après une orbite", "[verlet][kepler]")
+TEST_CASE("Verlet - Kepler : return to initial position after one orbit", "[verlet][kepler]")
 {
     auto prob = make_separable(
         KeplerAccel{},
@@ -121,7 +121,7 @@ TEST_CASE("Verlet - Kepler : retour à position initiale après une orbite", "[v
     CHECK_THAT(r.y, WithinAbs(0.0, 1e-4));
 }
 
-TEST_CASE("Verlet - ordre 2 : convergence sur oscillateur", "[verlet][convergence]")
+TEST_CASE("Verlet - order 2 : convergence on harmonic oscillator", "[verlet][convergence]")
 {
     auto accel = [](const double& x) { return -x; };
     auto prob  = make_separable(accel, 1.0, 0.0, 0.0);

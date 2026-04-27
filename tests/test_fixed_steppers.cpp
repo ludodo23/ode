@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "test_problems.hpp"
-#include "../include/ode.hpp"
+#include "ode.hpp"
 
 using namespace ode;
 using namespace ode::test;
@@ -37,7 +37,7 @@ double convergence_order(double err_coarse, double err_fine, double ratio = 2.0)
 // Tests Euler
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("Euler - décroissance exponentielle", "[euler][fixed]")
+TEST_CASE("Euler - exponential decay", "[euler][fixed]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -54,7 +54,7 @@ TEST_CASE("Euler - décroissance exponentielle", "[euler][fixed]")
     CHECK_THAT(sol.y.back(), WithinAbs(exact, 1e-3));  // Euler O(h)
 }
 
-TEST_CASE("Euler - ordre de convergence ≈ 1", "[euler][convergence]")
+TEST_CASE("Euler - convergence order  1", "[euler][convergence]")
 {
     double err_h    = fixed_step_error<EulerStepper<ODEProblem<double, ExponentialDecay>>>(1e-2);
     double err_h2   = fixed_step_error<EulerStepper<ODEProblem<double, ExponentialDecay>>>(5e-3);
@@ -65,7 +65,7 @@ TEST_CASE("Euler - ordre de convergence ≈ 1", "[euler][convergence]")
     CHECK(order < 1.2);
 }
 
-TEST_CASE("Euler - condition initiale", "[euler][initial]")
+TEST_CASE("Euler - initial condition", "[euler][initial]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -80,7 +80,7 @@ TEST_CASE("Euler - condition initiale", "[euler][initial]")
 // Tests RK2
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("RK2 - décroissance exponentielle", "[rk2][fixed]")
+TEST_CASE("RK2 - exponential decay", "[rk2][fixed]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -93,7 +93,7 @@ TEST_CASE("RK2 - décroissance exponentielle", "[rk2][fixed]")
     CHECK_THAT(sol.y.back(), WithinAbs(exact, 1e-4));
 }
 
-TEST_CASE("RK2 - ordre de convergence ≈ 2", "[rk2][convergence]")
+TEST_CASE("RK2 - convergence order  2", "[rk2][convergence]")
 {
     using P = ODEProblem<double, ExponentialDecay>;
     double err_h  = fixed_step_error<RK2Stepper<P>>(1e-2);
@@ -108,7 +108,7 @@ TEST_CASE("RK2 - ordre de convergence ≈ 2", "[rk2][convergence]")
 // Tests RK4
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("RK4 - décroissance exponentielle", "[rk4][fixed]")
+TEST_CASE("RK4 - exponential decay", "[rk4][fixed]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -121,7 +121,7 @@ TEST_CASE("RK4 - décroissance exponentielle", "[rk4][fixed]")
     CHECK_THAT(sol.y.back(), WithinAbs(exact, 1e-8));  // RK4 O(h^4)
 }
 
-TEST_CASE("RK4 - ordre de convergence ≈ 4", "[rk4][convergence]")
+TEST_CASE("RK4 - convergence order  4", "[rk4][convergence]")
 {
     using P = ODEProblem<double, ExponentialDecay>;
     double err_h  = fixed_step_error<RK4Stepper<P>>(1e-2);
@@ -132,7 +132,7 @@ TEST_CASE("RK4 - ordre de convergence ≈ 4", "[rk4][convergence]")
     CHECK(order < 4.2);
 }
 
-TEST_CASE("RK4 - oscillateur harmonique", "[rk4][oscillator]")
+TEST_CASE("RK4 - harmonic oscillator", "[rk4][oscillator]")
 {
     HarmonicOscillatorRHS rhs{1.0};
     auto prob = make_problem(rhs, 0.0, State2D{1.0, 0.0});
@@ -148,7 +148,7 @@ TEST_CASE("RK4 - oscillateur harmonique", "[rk4][oscillator]")
     CHECK_THAT(sol.y.back().v, WithinAbs(0.0, 1e-6));
 }
 
-TEST_CASE("RK4 - conservation de l'énergie (oscillateur)", "[rk4][energy]")
+TEST_CASE("RK4 - energy conservation (harmonic oscillator)", "[rk4][energy]")
 {
     HarmonicOscillatorRHS rhs{1.0};
     HarmonicOscillator    osc{1.0};
@@ -167,7 +167,7 @@ TEST_CASE("RK4 - conservation de l'énergie (oscillateur)", "[rk4][energy]")
     }
 }
 
-TEST_CASE("RK4 - nombre de pas correct", "[rk4][steps]")
+TEST_CASE("RK4 - correct number of steps", "[rk4][steps]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -181,7 +181,7 @@ TEST_CASE("RK4 - nombre de pas correct", "[rk4][steps]")
     CHECK_THAT(sol.t.back(), WithinAbs(1.0, 1e-14));
 }
 
-TEST_CASE("RK4 - différents t0", "[rk4][t0]")
+TEST_CASE("RK4 - different t0 values", "[rk4][t0]")
 {
     auto prob = make_problem(ExponentialDecay{}, 2.0, std::exp(-2.0));
     Options opts;

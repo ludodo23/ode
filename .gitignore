@@ -1,0 +1,5 @@
+.vscode
+.vsconan
+build
+
+CMakeUserPresets.json

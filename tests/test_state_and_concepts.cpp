@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "test_problems.hpp"
-#include "../include/ode.hpp"
+#include "ode.hpp"
 
 using namespace ode;
 using namespace ode::test;
@@ -68,7 +68,7 @@ namespace ode {
 static_assert(StateType<ArrayState<2>>);
 static_assert(StateType<ArrayState<6>>);
 
-TEST_CASE("ArrayState<2> - RK4 oscillateur harmonique", "[state][array]")
+TEST_CASE("ArrayState<2> - RK4 harmonic oscillator", "[state][array]")
 {
     using S = ArrayState<2>;
 
@@ -87,7 +87,7 @@ TEST_CASE("ArrayState<2> - RK4 oscillateur harmonique", "[state][array]")
     CHECK_THAT(sol.y.back()[1], WithinAbs(0.0, 1e-6));
 }
 
-TEST_CASE("ArrayState<6> - état 6D (style astrodynamique)", "[state][array]")
+TEST_CASE("ArrayState<6> - 6D state (astrodynamical style)", "[state][array]")
 {
     // Décroissance exponentielle sur 6 composantes indépendantes
     using S = ArrayState<6>;
@@ -117,7 +117,7 @@ TEST_CASE("ArrayState<6> - état 6D (style astrodynamique)", "[state][array]")
 // Tests des opérations arithmétiques sur State2D
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("State2D - opérations arithmétiques", "[state][arithmetic]")
+TEST_CASE("State2D - arithmetic operations", "[state][arithmetic]")
 {
     State2D a{1.0, 2.0};
     State2D b{3.0, 4.0};
@@ -139,7 +139,7 @@ TEST_CASE("State2D - opérations arithmétiques", "[state][arithmetic]")
 // Tests de make_problem / make_separable
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("make_problem - déduction de types", "[problem][deduction]")
+TEST_CASE("make_problem - type deduction", "[problem][deduction]")
 {
     auto f    = ExponentialDecay{};
     auto prob = make_problem(f, 0.0, 1.0);
@@ -149,7 +149,7 @@ TEST_CASE("make_problem - déduction de types", "[problem][deduction]")
     CHECK_THAT(prob.y0, WithinAbs(1.0, 1e-15));
 }
 
-TEST_CASE("make_separable - déduction de types", "[problem][separable]")
+TEST_CASE("make_separable - type deduction", "[problem][separable]")
 {
     auto prob = make_separable(
         [](const double& x) { return -x; },

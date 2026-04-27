@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "test_problems.hpp"
-#include "../include/ode.hpp"
+#include "ode.hpp"
 
 using namespace ode;
 using namespace ode::test;
@@ -15,7 +15,7 @@ using Catch::Matchers::WithinRel;
 // Tests RK23
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("RK23 - décroissance exponentielle", "[rk23][adaptive]")
+TEST_CASE("RK23 - exponential decay", "[rk23][adaptive]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -31,7 +31,7 @@ TEST_CASE("RK23 - décroissance exponentielle", "[rk23][adaptive]")
     CHECK_THAT(sol.y.back(), WithinAbs(exact, 1e-5));
 }
 
-TEST_CASE("RK23 - contrôle adaptatif : moins de pas que fixe", "[rk23][adaptive]")
+TEST_CASE("RK23 - adaptive control : fewer steps than fixed", "[rk23][adaptive]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
 
@@ -53,7 +53,7 @@ TEST_CASE("RK23 - contrôle adaptatif : moins de pas que fixe", "[rk23][adaptive
     CHECK(sol_adapt.n_steps < sol_fixed.n_steps);
 }
 
-TEST_CASE("RK23 - dense output via t_eval", "[rk23][dense]")
+TEST_CASE("RK23 - dense output through t_eval", "[rk23][dense]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -72,7 +72,7 @@ TEST_CASE("RK23 - dense output via t_eval", "[rk23][dense]")
     }
 }
 
-TEST_CASE("RK23 - dense output : valeurs intermédiaires précises", "[rk23][dense]")
+TEST_CASE("RK23 - dense output : precise intermediate values", "[rk23][dense]")
 {
     // Vérifie que le polynôme dense interpole bien entre les nœuds
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
@@ -93,7 +93,7 @@ TEST_CASE("RK23 - dense output : valeurs intermédiaires précises", "[rk23][den
     }
 }
 
-TEST_CASE("RK23 - pas rejetés enregistrés", "[rk23][adaptive]")
+TEST_CASE("RK23 - rejected steps recorded", "[rk23][adaptive]")
 {
     // Van der Pol légèrement non-linéaire pour forcer quelques rejets
     auto prob = make_problem(VanDerPolRHS{0.5}, 0.0, State2D{2.0, 0.0});
@@ -115,7 +115,7 @@ TEST_CASE("RK23 - pas rejetés enregistrés", "[rk23][adaptive]")
 // Tests RK45
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("RK45 - décroissance exponentielle", "[rk45][adaptive]")
+TEST_CASE("RK45 - exponential decay", "[rk45][adaptive]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -130,7 +130,7 @@ TEST_CASE("RK45 - décroissance exponentielle", "[rk45][adaptive]")
     CHECK_THAT(sol.y.back(), WithinAbs(std::exp(-1.0), 1e-6));
 }
 
-TEST_CASE("RK45 - plus précis que RK23 à même tolérance", "[rk45][rk23][comparison]")
+TEST_CASE("RK45 - more accurate than RK23 at same tolerance", "[rk45][rk23][comparison]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     double exact = std::exp(-1.0);
@@ -151,7 +151,7 @@ TEST_CASE("RK45 - plus précis que RK23 à même tolérance", "[rk45][rk23][comp
     CHECK(err45 <= err23 * 10.0);  // tolérance large — les deux respectent rtol
 }
 
-TEST_CASE("RK45 - oscillateur harmonique", "[rk45][oscillator]")
+TEST_CASE("RK45 - harmonic oscillator", "[rk45][oscillator]")
 {
     HarmonicOscillatorRHS rhs{1.0};
     auto prob = make_problem(rhs, 0.0, State2D{1.0, 0.0});
@@ -168,7 +168,7 @@ TEST_CASE("RK45 - oscillateur harmonique", "[rk45][oscillator]")
     CHECK_THAT(sol.y.back().v, WithinAbs(0.0, 1e-4));
 }
 
-TEST_CASE("RK45 - dense output via t_eval", "[rk45][dense]")
+TEST_CASE("RK45 - dense output through t_eval", "[rk45][dense]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -187,7 +187,7 @@ TEST_CASE("RK45 - dense output via t_eval", "[rk45][dense]")
     }
 }
 
-TEST_CASE("RK45 - Kepler orbite circulaire", "[rk45][kepler]")
+TEST_CASE("RK45 - circular Kepler orbit", "[rk45][kepler]")
 {
     // Orbite circulaire : r0=(1,0), v0=(0,1) → période T = 2π, énergie E = -0.5
     KeplerRHS rhs;
@@ -214,7 +214,7 @@ TEST_CASE("RK45 - Kepler orbite circulaire", "[rk45][kepler]")
 // Tests communs aux méthodes adaptatives
 // ════════════════════════════════════════════════════════════════════════════
 
-TEST_CASE("RK23 - max_steps déclenche arrêt propre", "[rk23][safety]")
+TEST_CASE("RK23 - max_steps leads to proper termination", "[rk23][safety]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
@@ -228,7 +228,7 @@ TEST_CASE("RK23 - max_steps déclenche arrêt propre", "[rk23][safety]")
     CHECK(sol.n_steps <= 6);
 }
 
-TEST_CASE("RK45 - max_steps déclenche arrêt propre", "[rk45][safety]")
+TEST_CASE("RK45 - max_steps leads to proper termination", "[rk45][safety]")
 {
     auto prob = make_problem(ExponentialDecay{}, 0.0, 1.0);
     Options opts;
