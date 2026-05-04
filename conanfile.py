@@ -24,11 +24,8 @@ class OdeConan(ConanFile):
     }
 
     def set_version(self):
-        header = Path(self.recipe_folder) / "include" / "ode.hpp"
-        content = header.read_text()
-        version = re.search(r'ODE_VERSION\s+"(.+)"', content)
-        if version:
-            self.version = version.group(1)
+        with open("VERSION") as f:
+            self.version = f.read().strip()
 
     def build_requirements(self):
         self.test_requires("catch2/3.4.0")

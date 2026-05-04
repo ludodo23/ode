@@ -14,6 +14,21 @@ namespace detail {
     }
 }
 
+/**
+ * @brief Integrate an ODE problem using a given stepper and controller.
+ * 
+ * @tparam Problem The type of the ODE problem.
+ * @tparam Stepper The type of the stepper.
+ * @tparam Controller The type of the controller.
+ * @tparam Sampler The type of the sampler.
+ * @param prob The ODE problem to integrate.
+ * @param stepper The stepper to use for integration.
+ * @param controller The controller to use for step size control.
+ * @param sampler The sampler to use for collecting the solution.
+ * @param t_end The end time of the integration.
+ * @param max_steps The maximum number of steps to take.
+ * @return The solution containing the integrated values.
+ */
 template<typename Problem, typename Stepper,
          typename Controller, typename Sampler>
 auto integrate(const Problem& prob,
@@ -50,6 +65,7 @@ auto integrate(const Problem& prob,
 
         auto res = stepper.step(prob, t, y, dt);
 
+        // TODO à revoir
         if constexpr (requires { res.error; }) {
             double en     = detail::adl_norm(res.error);
             double yn     = detail::adl_norm(res.y);
@@ -78,6 +94,20 @@ auto integrate(const Problem& prob,
     return sol;
 }
 
+/**
+ * @brief Integrate a separable ODE problem using a given stepper and sampler.
+ * 
+ * @tparam Problem The type of the separable ODE problem.
+ * @tparam Stepper The type of the stepper.
+ * @tparam Sampler The type of the sampler.
+ * @param prob The separable ODE problem to integrate.
+ * @param stepper The stepper to use for integration.
+ * @param sampler The sampler to use for collecting the solution.
+ * @param t_end The end time of the integration.
+ * @param dt The time step to use for integration.
+ * @param max_steps The maximum number of steps to take.
+ * @return The solution containing the integrated values.
+ */
 template<typename Problem, typename Stepper, typename Sampler>
 auto integrate_separable(const Problem& prob,
                          Stepper&       stepper,

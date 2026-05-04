@@ -12,10 +12,23 @@ namespace ode {
 
 // ─── Euler explicite (ordre 1) ───────────────────────────────────────────────
 
+/**
+ * @brief Euler explicit stepper.
+ * @tparam Problem The problem type.
+ */
 template<typename Problem>
 struct EulerStepper {
+    /** @brief The state type. */
     using State = typename Problem::state_type;
 
+    /**
+     * @brief Perform a single step of the Euler explicit method.
+     * @param prob The problem to solve.
+     * @param t The current time.
+     * @param y The current state.
+     * @param dt The time step.
+     * @return The result of the step.
+     */
     StepResult<State> step(const Problem& prob,
                            double t, const State& y, double dt) const
     {
@@ -25,10 +38,23 @@ struct EulerStepper {
 
 // ─── RK2 Midpoint (ordre 2) ──────────────────────────────────────────────────
 
+/**
+ * @brief RK2 Midpoint stepper.
+ * @tparam Problem The problem type.
+ */
 template<typename Problem>
 struct RK2Stepper {
+    /** @brief The state type. */
     using State = typename Problem::state_type;
 
+    /**
+     * @brief Perform a single step of the RK2 Midpoint method.
+     * @param prob The problem to solve.
+     * @param t The current time.
+     * @param y The current state.
+     * @param dt The time step.
+     * @return The result of the step.
+     */
     StepResult<State> step(const Problem& prob,
                            double t, const State& y, double dt) const
     {
@@ -40,10 +66,23 @@ struct RK2Stepper {
 
 // ─── RK4 classique (ordre 4) ─────────────────────────────────────────────────
 
+/**
+ * @brief RK4 classical stepper.
+ * @tparam Problem The problem type.
+ */
 template<typename Problem>
 struct RK4Stepper {
+    /** @brief The state type. */
     using State = typename Problem::state_type;
 
+    /**
+     * @brief Perform a single step of the RK4 method.
+     * @param prob The problem to solve.
+     * @param t The current time.
+     * @param y The current state.
+     * @param dt The time step.
+     * @return The result of the step.
+     */
     StepResult<State> step(const Problem& prob,
                            double t, const State& y, double dt) const
     {

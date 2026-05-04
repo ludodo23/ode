@@ -8,17 +8,37 @@ namespace ode {
 
 // ─── Contrôleur à pas fixe ───────────────────────────────────────────────────
 
+/**
+ * @brief Fixed step controller.
+ * 
+ * Basic controller that always accepts the step and does not change the time step size.
+ */
 class FixedController {
 public:
+    /**
+     * @brief FixedController constructor.
+     * @param dt The fixed time step size to use for all steps.
+     */
     explicit FixedController(double dt) : dt_(dt) {}
 
+    /**
+     * @brief Get the fixed time step size.
+     * @return The fixed time step size.
+     */
     double dt() const { return dt_; }
 
-    // Toujours accepté, pas ne change pas
+    /**
+     * @brief Accept the current step.
+     * @param args Arguments for the step.
+     * @return Always returns true.
+     */
     template<typename... Args>
-    bool accept(Args&&...) { return true; }
+    bool accept(Args&&...) { return true; } // Toujours accepté, pas ne change pas
 
 private:
+    /**
+     * @brief The fixed time step size.
+     */
     double dt_;
 };
 
@@ -26,8 +46,22 @@ private:
 // Basé sur la norme mixte relative/absolue par composante
 // Facteur de sécurité : 0.9, exposant : 1/(q+1) avec q = ordre de l'erreur
 
+/**
+ * @brief Adaptive controller.
+ * 
+ * Adaptive controller that adjusts the time step size based on the estimated error.
+ */
 class AdaptiveController {
 public:
+    /**
+     * @brief AdaptiveController constructor.
+     * @param dt_init The initial time step size.
+     * @param rtol The relative tolerance.
+     * @param atol The absolute tolerance.
+     * @param dt_min The minimum time step size.
+     * @param dt_max The maximum time step size.
+     * @param error_order The order of the error estimate.
+     */
     AdaptiveController(double dt_init, double rtol, double atol,
                        double dt_min = 1e-12, double dt_max = 1.0,
                        int error_order = 3)

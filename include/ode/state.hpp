@@ -5,6 +5,11 @@
 
 namespace ode {
 
+/**
+ * @brief Concept for state types.
+ * 
+ * A type is a state type if it supports addition and scalar multiplication.
+ */
 template<typename S>
 concept StateType =
     requires(S a, S b, double c) {

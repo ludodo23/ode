@@ -1,0 +1,24 @@
+## Doxyfile for ode
+## Run: doxygen Doxyfile
+
+PROJECT_NAME           = "ode"
+PROJECT_NUMBER         = "0.2.0"
+PROJECT_BRIEF          = "Header-only C++ ode library"
+OUTPUT_DIRECTORY       = doxygen
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+INPUT                  = include/
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+PREDEFINED             = DOXYGEN_RUNNING
