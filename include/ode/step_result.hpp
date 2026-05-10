@@ -1,6 +1,7 @@
 #pragma once
 
 #include "state.hpp"
+#include "dense.hpp"
 
 namespace ode {
 
@@ -24,7 +25,7 @@ struct StepResult {
  * @tparam S The state type.
  * @tparam Dense The type of the dense output function.
  */
-template<StateType S, typename Dense>
+template<StateType S, DenseType<S> Dense>
 struct AdaptiveStepResult {
     S     y;      // solution au bout du pas
     S     error;  // estimée d'erreur (y_haute_ordre - y_basse_ordre)
