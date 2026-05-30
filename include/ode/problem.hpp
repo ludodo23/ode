@@ -54,6 +54,27 @@ concept SecondOrderODEFunction =
         { f(t, y, yp) } -> std::convertible_to<S>;
     };
 
+
+template<StateType S, SecondOrderODEFunction<S> F>
+struct SecondOrderODEProblem {
+    using state_type    = S;
+    using function_type = F;
+
+    F      f;
+    double t0;
+    S      y0;
+
+    constexpr ODEProblem(F func, double t0_, S y0_)
+        : f(func), t0(t0_), y0(std::move(y0_)) {}
+};
+
+// Helper de déduction de types
+template<typename F, typename S>
+auto make_second_order_problem(F f, double t0, S y0) {
+    return SecondOrderODEProblem<S, F>(std::move(f), t0, std::move(y0));
+}
+
+
 // ─── Concept : accélération a(x) -> State (problème séparable) ──────────────
 
 /**
