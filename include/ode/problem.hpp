@@ -47,6 +47,13 @@ auto make_problem(F f, double t0, S y0) {
     return ODEProblem<S, F>(std::move(f), t0, std::move(y0));
 }
 
+template<typename F, typename S>
+concept SecondOrderODEFunction =
+    StateType<S> &&
+    requires(F f, double t, const S& y, const S& yp) {
+        { f(t, y, yp) } -> std::convertible_to<S>;
+    };
+
 // ─── Concept : accélération a(x) -> State (problème séparable) ──────────────
 
 /**
