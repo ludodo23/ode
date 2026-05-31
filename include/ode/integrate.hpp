@@ -65,7 +65,7 @@ auto integrate(const Problem& prob,
 
         auto res = stepper.step(prob, t, y, dt);
 
-        // TODO à revoir
+        // TODO à revoir il faut que l'erreur passe par une classe spécifique. comme ça la norme n'apparaît plus ici.
         if constexpr (requires { res.error; }) {
             double en     = detail::adl_norm(res.error);
             double yn     = detail::adl_norm(res.y);
