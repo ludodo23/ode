@@ -53,6 +53,9 @@ struct Solution {
     /** @brief The state points. */
     std::vector<S>      y;
 
+    /** @brief The derivative state points (optional, only for second order problem). */
+    std::vector<S>     yp;
+
     // Dense output global (optionnel, rempli si t_eval fourni ou méthode adaptative)
     /** @brief The interpolation function for dense output. */
     std::function<S(double)> interp;
@@ -66,5 +69,6 @@ struct Solution {
     /** @brief A message describing the result of the integration. */
     std::string message;
 };
+
 
 } // namespace ode
