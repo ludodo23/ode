@@ -65,6 +65,7 @@ public:
         return Solution<S>{
             std::move(t_),
             std::move(y_),
+            {},
             {},       // pas d'interpolant global
             true, 0, 0, "OK"
         };
@@ -145,6 +146,7 @@ public:
         return Solution<S>{
             std::move(t_out_),
             std::move(y_out_),
+            {},
             {},
             true, 0, 0, "OK"
         };
