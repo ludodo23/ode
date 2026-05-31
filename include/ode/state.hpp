@@ -17,6 +17,7 @@ concept StateType =
         { c * a }  -> std::convertible_to<S>;
         { a * c }  -> std::convertible_to<S>;
     };
+// TODO add size, norm, head, tail.
 
 // norm() — point de customisation
 // Règle : définir une surcharge libre dans le même namespace que votre type.
