@@ -1,22 +1,8 @@
 #pragma once
 
-#include "state.hpp"
-#include <concepts>
+#include "concept_api.hpp"
 
 namespace ode {
-
-// ─── Concept : fonction f(t, y) -> State ────────────────────────────────────
-/**
- * @brief Concept for ODE functions.
- * 
- * A type F is an ODE function for state type S if it can be called with a double and a const S& and returns something convertible to S.
- */
-template<typename F, typename S>
-concept ODEFunction =
-    StateType<S> &&
-    requires(F f, double t, const S& y) {
-        { f(t, y) } -> std::convertible_to<S>;
-    };
 
 // ─── Problème de Cauchy : dy/dt = f(t, y),  y(t0) = y0 ─────────────────────
 
@@ -47,14 +33,6 @@ auto make_problem(F f, double t0, S y0) {
     return ODEProblem<S, F>(std::move(f), t0, std::move(y0));
 }
 
-template<typename F, typename S>
-concept SecondOrderODEFunction =
-    StateType<S> &&
-    requires(F f, double t, const S& y, const S& yp) {
-        { f(t, y, yp) } -> std::convertible_to<S>;
-    };
-
-
 template<StateType S, SecondOrderODEFunction<S> F>
 struct SecondOrderODEProblem {
     using state_type    = S;
@@ -75,20 +53,6 @@ auto make_second_order_problem(F f, double t0, S y0, S yp0) {
     return SecondOrderODEProblem<S, F>(std::move(f), t0, std::move(y0), std::move(yp0));
 }
 
-
-// ─── Concept : accélération a(x) -> State (problème séparable) ──────────────
-
-/**
- * @brief Concept for acceleration functions in separable problems.
- * 
- * A type A is an acceleration function for state type S if it can be called with a const S& and returns something convertible to S.
- */
-template<typename A, typename S>
-concept AccelFunction =
-    StateType<S> &&
-    requires(A a, const S& x) {
-        { a(x) } -> std::convertible_to<S>;
-    };
 
 // ─── Problème séparable : x'' = a(x),  x(t0)=x0, x'(t0)=v0 ────────────────
 // Utilisé par les intégrateurs symplectiques (Verlet, Yoshida…)

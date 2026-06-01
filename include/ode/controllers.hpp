@@ -1,6 +1,6 @@
 #pragma once
 
-#include "state.hpp"
+#include "concept_api.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -70,13 +70,13 @@ public:
         , exponent_(1.0 / error_order)
     {}
 
-    // Norme scalaire : erreur normalisée sur un état scalaire
-    bool accept(double err, double y)
-    {
-        double sc = atol_ + rtol_ * std::abs(y);
-        double e  = std::abs(err) / sc;
-        return update(e);
-    }
+    // // Norme scalaire : erreur normalisée sur un état scalaire
+    // bool accept(double err, double y)
+    // {
+    //     double sc = atol_ + rtol_ * std::abs(y);
+    //     double e  = std::abs(err) / sc;
+    //     return update(e);
+    // }
 
     // Norme vectorielle : on passe la norme globale pre-calculée
     // L'appelant doit calculer norm(error / (atol + rtol * |y|))
@@ -86,6 +86,8 @@ public:
     }
 
     double dt() const { return dt_; }
+    double atol() const { return atol_; }
+    double rtol() const { return rtol_; }
 
 private:
     bool update(double e)

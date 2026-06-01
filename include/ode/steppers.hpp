@@ -138,6 +138,7 @@ using RK4Stepper = ExplicitRKStepper<Problem, 4, RK4Tableau>;
  * the dense output polynomial.
  * 
  */
+// TODO: mettre le Dense dans le tableau.
 template<typename Problem,
          std::size_t Stages,
          typename Tableau,
@@ -145,7 +146,7 @@ template<typename Problem,
 struct EmbeddedRKStepper {
     using State  = typename Problem::state_type;
     using Dense  = DenseOutput;
-    using Result = AdaptiveStepResult<State, Dense>;
+    using Result = AdaptiveStepResult<State, Dense, typename Tableau::error_type>;
 
     /**
      * @brief Compute a single adaptive step.
@@ -159,7 +160,7 @@ struct EmbeddedRKStepper {
      * 
      * The returned AdaptiveStepResult contains:
      * - y: the high-order solution at the end of the step.
-     * - error: the estimated error (y_high - y_low).
+     * - error: the estimated error.
      * - dense: the dense output polynomial for interpolation within the step.
      * 
      * @param prob Problem instance.
@@ -198,21 +199,101 @@ struct EmbeddedRKStepper {
             k_fsal = prob.f(t + dt, y_high);
         }
 
-        // Solution embedded ordre bas
-        State y_low = y;
-        for (std::size_t i = 0; i < Stages; ++i) {
-            y_low = y_low + (dt * Tableau::b_low[i]) * k[i];
-        }
+        // // Solution embedded ordre bas
+        // State y_low = y;
+        // for (std::size_t i = 0; i < Stages; ++i) {
+        //     y_low = y_low + (dt * Tableau::b_low[i]) * k[i];
+        // }
 
-        if constexpr (Tableau::fsal_embedded) {
-            y_low = y_low + (dt * Tableau::b_low_fsal) * k_fsal;
-        }
+        // if constexpr (Tableau::fsal_embedded) {
+        //     y_low = y_low + (dt * Tableau::b_low_fsal) * k_fsal;
+        // }
+
+        // ---------------------------------------------------------------------
+        // Method-specific error computation
+        // ---------------------------------------------------------------------
+        auto error = Tableau::compute_error(y, y_high, k, k_fsal, dt);
+
+        // ---------------------------------------------------------------------
+        // Dense output
+        // ---------------------------------------------------------------------
+        auto dense = DenseOutput::make(y, y_high, k, k_fsal, t, dt);
 
         return {
             y_high,
-            y_high - y_low,
-            DenseOutput::make(y, y_high, k, k_fsal, t, dt)
+            error,
+            dense
         };
+    }
+};
+
+// -----------------------------------------------------------------------------
+// Default embedded RK error = single state difference (RK23/RK45)
+// -----------------------------------------------------------------------------
+template<StateType State>
+struct DefaultErrorNorm {
+    State err;
+    State y;
+    State y_next;
+    DefaultErrorNorm() = delete;
+    DefaultErrorNorm(const State & err_, const State& y_, const State& y_next_) : err(err_), y(y_), y_next(y_next_) {};
+
+    double operator()(double atol,
+                      double rtol) const
+    {
+        double sum = 0.0;
+        std::size_t n = state_size(err);
+
+        for (std::size_t i = 0; i < n; ++i) {
+            double sc = atol + rtol * std::max(std::abs(state_at(y, i)), std::abs(state_at(y_next, i)));
+            double e  = state_at(err, i) / sc;
+            sum += e * e;
+        }
+
+        return std::sqrt(sum / static_cast<double>(n));
+    }
+};
+
+// -----------------------------------------------------------------------------
+// DOP853 dual estimator
+// -----------------------------------------------------------------------------
+template<StateType State>
+struct DOP853Error {
+    State err5;
+    State err3;
+};
+
+template<StateType State>
+struct DOP853ErrorNorm {
+    DOP853Error<State> err;
+    State y;
+    State y_next;
+
+    DOP853ErrorNorm() = delete;
+    DOP853ErrorNorm(const DOP853Error<State>& err_, const State& y_, const State& y_next_) : err(err_), y(y_), y_next(y_next_) {};
+    double operator()(double atol,
+                      double rtol) const
+    {
+        double err5 = 0.0;
+        double err3 = 0.0;
+        std::size_t n = state_size(y);
+
+        for (std::size_t i = 0; i < n; ++i) {
+            double sc = atol + rtol * std::max(std::abs(state_at(y, i)), std::abs(state_at(y_next, i)));
+
+            double e5 = state_at(err.err5, i) / sc;
+            double e3 = state_at(err.err3, i) / sc;
+
+            err5 += e5 * e5;
+            err3 += e3 * e3;
+        }
+
+        if (err5 == 0.0 && err3 == 0.0) {
+            return 0.0;
+        }
+
+        double deno = err5 + 0.01 * err3;
+        return std::sqrt(err5 / (static_cast<double>(n) * deno));
     }
 };
 
@@ -281,7 +362,9 @@ struct RK23DenseOutput {
  * - y_low = y + dt*(7/24*k1 + 1/4*k2 + 1/3*k3 + 1/8*k4) (if fsal_embedded is true, add 1/8*k4 to the low-order solution)
  *  
  */
+template <typename State>
 struct RK23Tableau {
+    using error_type = DefaultErrorNorm<State>;
     static constexpr bool fsal = true;
     static constexpr bool fsal_embedded = true;
     static constexpr double b_low_fsal = 1.0 / 8.0;
@@ -303,6 +386,24 @@ struct RK23Tableau {
     static constexpr std::array<double, 3> b_low = {
         7.0 / 24.0, 1.0 / 4.0, 1.0 / 3.0
     };
+
+    template<std::size_t N>
+    static DefaultErrorNorm<State> compute_error(const State& y,
+                                const State& y_high,
+                                const std::array<State, N>& k,
+                                const State& k_fsal,
+                                double dt)
+    {
+        State y_low = y;
+
+        for (std::size_t i = 0; i < 3; ++i)
+            y_low = y_low + dt * b_low[i] * k[i];
+
+        if constexpr (fsal_embedded)
+            y_low = y_low + dt * b_low_fsal * k_fsal;
+
+        return DefaultErrorNorm<State>(y_high - y_low, y, y_high);
+    }
 };
 
 /** @brief RK23 stepper for adaptive time-stepping.
@@ -310,7 +411,7 @@ struct RK23Tableau {
  * This struct implements the RK23 method, which is a 3-stage embedded Runge-Kutta method of order 2(3). It uses the RK23Tableau for the coefficients and the RK23DenseOutput for interpolation. The step() method computes both the high-order and low-order solutions, estimates the error, and constructs the dense output polynomial for interpolation within the step.
  */
 template<typename Problem>
-using RK23Stepper = EmbeddedRKStepper<Problem, 3, RK23Tableau, RK23DenseOutput<typename Problem::state_type>>;
+using RK23Stepper = EmbeddedRKStepper<Problem, 3, RK23Tableau<typename Problem::state_type>, RK23DenseOutput<typename Problem::state_type>>;
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -395,7 +496,9 @@ struct RK45DenseOutput {
  * 
  *  @tparam State State type.
  */
+template <typename State>
 struct RK45Tableau {
+    using error_type = DefaultErrorNorm<State>;
     static constexpr bool fsal = true;
     static constexpr bool fsal_embedded = true;
     static constexpr double b_low_fsal = 1.0 / 40.0;
@@ -435,6 +538,24 @@ struct RK45Tableau {
         -92097.0/339200.0,
         187.0/2100.0
     };
+
+    template<std::size_t N>
+    static DefaultErrorNorm<State> compute_error(const State& y,
+                                const State& y_high,
+                                const std::array<State, N>& k,
+                                const State& k_fsal,
+                                double dt)
+    {
+        State y_low = y;
+
+        for (std::size_t i = 0; i < 6; ++i)
+            y_low = y_low + dt * b_low[i] * k[i];
+
+        if constexpr (fsal_embedded)
+            y_low = y_low + dt * b_low_fsal * k_fsal;
+
+        return DefaultErrorNorm<State>(y_high - y_low, y, y_high);
+    }
 };
 
 /**
@@ -443,7 +564,7 @@ struct RK45Tableau {
  * This struct implements the RK45 method, which is a 6-stage embedded Runge-Kutta method of order 4(5). It uses the RK45Tableau for the coefficients and the RK45DenseOutput for interpolation. The step() method computes both the high-order and low-order solutions, estimates the error, and constructs the dense output polynomial for interpolation within the step.
  */
 template<typename Problem>
-using RK45Stepper = EmbeddedRKStepper<Problem, 6, RK45Tableau, RK45DenseOutput<typename Problem::state_type>>;
+using RK45Stepper = EmbeddedRKStepper<Problem, 6, RK45Tableau<typename Problem::state_type>, RK45DenseOutput<typename Problem::state_type>>;
 
 // ════════════════════════════════════════════════════════════════════════════
 // Méthode SYMPLECTIQUE

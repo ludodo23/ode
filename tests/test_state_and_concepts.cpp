@@ -54,16 +54,9 @@ struct ArrayState {
 
     double& operator[](std::size_t i) { return data[i]; }
     double  operator[](std::size_t i) const { return data[i]; }
-};
 
-namespace ode {
-    template<std::size_t N>
-    double norm(const ArrayState<N>& s) {
-        double sum = 0;
-        for (auto x : s.data) sum += x*x;
-        return std::sqrt(sum);
-    }
-}
+    size_t size() const { return N; }
+};
 
 static_assert(StateType<ArrayState<2>>);
 static_assert(StateType<ArrayState<6>>);

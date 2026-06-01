@@ -3,7 +3,6 @@
 // Lib ODE — intégrateurs numériques génériques
 // Dépendances : C++20, aucune lib externe
 
-#include "ode/state.hpp"
 #include "ode/problem.hpp"
 #include "ode/solution.hpp"
 #include "ode/step_result.hpp"

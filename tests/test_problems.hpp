@@ -52,6 +52,15 @@ struct State2D {
 
     friend State2D operator*(double c, const State2D& s) { return {c*s.x, c*s.v}; }
     friend State2D operator*(const State2D& s, double c) { return {c*s.x, c*s.v}; }
+
+    size_t size() const { return 2; }
+    double operator[](size_t i) const {
+        switch (i) {
+            case 0: return x;
+            case 1: return v;
+            default: throw std::out_of_range("State2D index out of range");
+        }
+    }
 };
 
 // f(t, [y, y']) = [y', -ω²y]
@@ -90,6 +99,17 @@ struct State4D {
         return {c*s.x, c*s.y, c*s.vx, c*s.vy};
     }
     friend State4D operator*(const State4D& s, double c) { return c * s; }
+
+    size_t size() const { return 4; }
+    double operator[](size_t i) const {
+        switch (i) {
+            case 0: return x;
+            case 1: return y;
+            case 2: return vx;
+            case 3: return vy;
+            default: throw std::out_of_range("State4D index out of range");
+        }
+    }
 };
 
 struct KeplerRHS {
@@ -108,6 +128,15 @@ struct Vec2 {
 
     friend Vec2 operator*(double c, const Vec2& v) { return {c*v.x, c*v.y}; }
     friend Vec2 operator*(const Vec2& v, double c) { return {c*v.x, c*v.y}; }
+
+    size_t size() const { return 2; }
+    double operator[](size_t i) const {
+        switch (i) {
+            case 0: return x;
+            case 1: return y;
+            default: throw std::out_of_range("Vec2 index out of range");
+        }
+    }
 };
 
 struct KeplerAccel {
@@ -126,15 +155,3 @@ inline double kepler_energy(const Vec2& r, const Vec2& v) {
 
 } // namespace ode::test
 
-
-namespace ode {
-    inline double norm(const test::State2D& s) {
-        return std::sqrt(s.x*s.x + s.v*s.v);
-    }
-    inline double norm(const test::State4D& s) {
-        return std::sqrt(s.x*s.x + s.y*s.y + s.vx*s.vx + s.vy*s.vy);
-    }
-    inline double norm(const test::Vec2& v) {
-        return std::sqrt(v.x*v.x + v.y*v.y);
-    }
-}

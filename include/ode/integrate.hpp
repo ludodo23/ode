@@ -6,14 +6,6 @@
 
 namespace ode {
 
-namespace detail {
-    template<typename S>
-    double adl_norm(const S& s) {
-        using ode::norm;
-        return norm(s);
-    }
-}
-
 /**
  * @brief Integrate an ODE problem using a given stepper and controller.
  * 
@@ -65,13 +57,9 @@ auto integrate(const Problem& prob,
 
         auto res = stepper.step(prob, t, y, dt);
 
-        // TODO à revoir il faut que l'erreur passe par une classe spécifique. comme ça la norme n'apparaît plus ici.
         if constexpr (requires { res.error; }) {
-            double en     = detail::adl_norm(res.error);
-            double yn     = detail::adl_norm(res.y);
-            double e_norm = en / (1e-9 + 1e-6 * yn);
-
-            if (!controller.accept_normalized(e_norm)) {
+            double norm_error = res.error(controller.atol(), controller.rtol());
+            if (!controller.accept_normalized(norm_error)) {
                 ++n_rejected;
                 continue;
             }
