@@ -37,4 +37,24 @@ struct AugmentedState {
     }
 };
 
+// Trait de détection
+template<typename T>
+struct is_augmented : std::false_type {};
+
+template<StateType S>
+struct is_augmented<AugmentedState<S>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_augmented_v = is_augmented<T>::value;
+
+// Helper pour extraire S depuis AugmentedState<S> ou S
+template<typename T>
+struct inner_state { using type = T; };
+
+template<StateType S>
+struct inner_state<AugmentedState<S>> { using type = S; };
+
+template<typename T>
+using inner_state_t = typename inner_state<T>::type;
+
 } // namespace ode
