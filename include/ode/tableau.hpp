@@ -1,3 +1,44 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Tableaux de Butcher
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Euler explicite (ordre 1)
+struct EulerTableau {
+    static constexpr std::array<double, 1> c = {0.0};
+    static constexpr std::array<std::array<double, 1>, 1> a = {{
+        {{0.0}}
+    }};
+    static constexpr std::array<double, 1> b = {1.0};
+};
+
+// RK2 Midpoint (ordre 2)
+struct RK2Tableau {
+    static constexpr std::array<double, 2> c = {0.0, 0.5};
+    static constexpr std::array<std::array<double, 2>, 2> a = {{
+        {{0.0, 0.0}},
+        {{0.5, 0.0}}
+    }};
+    static constexpr std::array<double, 2> b = {0.0, 1.0};
+};
+
+// RK4 classique (ordre 4)
+struct RK4Tableau {
+    static constexpr std::array<double, 4> c = {0.0, 0.5, 0.5, 1.0};
+    static constexpr std::array<std::array<double, 4>, 4> a = {{
+        {{0.0, 0.0, 0.0, 0.0}},
+        {{0.5, 0.0, 0.0, 0.0}},
+        {{0.0, 0.5, 0.0, 0.0}},
+        {{0.0, 0.0, 1.0, 0.0}}
+    }};
+    static constexpr std::array<double, 4> b = {
+        1.0 / 6.0,
+        1.0 / 3.0,
+        1.0 / 3.0,
+        1.0 / 6.0
+    };
+};
+
+
 // -----------------------------------------------------------------------------
 // Default embedded RK error = single state difference (RK23/RK45)
 // -----------------------------------------------------------------------------
