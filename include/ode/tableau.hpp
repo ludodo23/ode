@@ -218,7 +218,149 @@ struct RK23Tableau {
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RK45 Dormand–Prince
+// ─────────────────────────────────────────────────────────────────────────────
 
+/** @brief Dense output for RK45 Dormand–Prince method.
+ * 
+ * This struct provides a dense output polynomial for the RK45 method, which allows
+ * for interpolation of the solution at any point within the time step. The dense
+ * output is constructed using the initial state y0, the intermediate stages k1, k3,
+ * k4, k5, k6, and the time information t0 and dt. The operator() method evaluates 
+ * the dense output polynomial at a given time t within the interval [t0, t0 + dt].
+ * 
+ *  @tparam State State type.
+ */
+template<typename State>
+struct RK45DenseOutput {
+    State y0, k1, k3, k4, k5, k6;
+    double t0, dt;
+
+    State operator()(double t) const {
+        double th  = (t - t0) / dt;
+        double th2 = th * th;
+        double th3 = th2 * th;
+
+        return y0 + dt * th * (
+            k1 * (1.0
+                    - (183.0/64.0)*th
+                    + (37.0/12.0)*th2
+                    - (145.0/128.0)*th3)
+            + k3 * ((1500.0/371.0)*th
+                    - (1000.0/159.0)*th2
+                    + (1000.0/371.0)*th3)
+            + k4 * (-(125.0/32.0)*th
+                    + (125.0/12.0)*th2
+                    - (375.0/64.0)*th3)
+            + k5 * ((9477.0/3392.0)*th
+                    - (729.0/106.0)*th2
+                    + (25515.0/6784.0)*th3)
+            + k6 * (-(11.0/7.0)*th
+                    + (11.0/3.0)*th2
+                    - (55.0/28.0)*th3)
+        );
+    }
+
+    template<std::size_t N>
+    static auto make(const State& y0,
+                     const State&,
+                     const std::array<State, N>& k,
+                     const State&,
+                     double t0,
+                     double dt) {
+        return RK45DenseOutput{y0, k[0], k[2], k[3], k[4], k[5], t0, dt};
+    }
+};
+
+/** @brief Tableau for RK45 Dormand–Prince method.
+ * 
+ * This tableau defines the coefficients for the RK45 method, which is a 6-stage embedded Runge-Kutta method of order 4(5). It has the following properties:
+ * - FSAL (First Same As Last): The last stage of the current step is the first stage of the next step, which can save one function evaluation per step.
+ * - Embedded: It provides both a fourth-order solution (y_high) and a fifth-order solution (y_low) for error estimation and adaptive time-stepping.
+ * - The low-order solution includes a contribution from the FSAL stage if fsal_embedded is true, which can improve the accuracy of the error estimate
+ * 
+ * The tableau is defined as follows:
+ * - c: The time points for the stages.
+ * - a: The coefficients for the intermediate stages.
+ * - b_high: The coefficients for the high-order solution (order 5).
+ * - b_low: The coefficients for the low-order solution (order 4).
+ * 
+ * The RK45 method is particularly efficient for problems where a high accuracy is required and where the cost of function evaluations is significant, as it allows for adaptive time-stepping with a good balance between accuracy and computational effort.
+ * We remind the equations for the RK45 method:
+ * - k1 = f(t, y)
+ * - k2 = f(t + 1/5*dt, y + dt*(1/5*k1))
+ * - k3 = f(t + 3/10*dt, y + dt*(3/40*k1 + 9/40*k2))
+ * - k4 = f(t + 4/5*dt, y + dt*(44/45*k1 - 56/15*k2 + 32/9*k3))
+ * - k5 = f(t + 8/9*dt, y + dt*(19372/6561*k1 - 25360/2187*k2 + 64448/6561*k3 - 212/729*k4))
+ * - k6 = f(t + dt, y + dt*(9017/3168*k1 - 355/33*k2 + 46732/5247*k3 + 49/176*k4 - 5103/18656*k5))
+ * - y_high = y + dt*(35/384*k1 + 0*k2 + 500/1113*k3 + 125/192*k4 - 2187/6784*k5 + 11/84*k6)
+ * - y_low = y + dt*(5179/57600*k1 + 0*k2 + 7571/16695*k3 + 393/640*k4 - 92097/339200*k5 + 187/2100*k6) (if fsal_embedded is true, add
+ *  
+ * 
+ *  @tparam State State type.
+ */
+template <typename State>
+struct RK45Tableau {
+    using error_type = DefaultErrorNorm<State>;
+    static constexpr bool fsal = true;
+    static constexpr bool fsal_embedded = true;
+    static constexpr double b_low_fsal = 1.0 / 40.0;
+
+    static constexpr std::array<double, 6> c = {
+        0.0,
+        1.0/5.0,
+        3.0/10.0,
+        4.0/5.0,
+        8.0/9.0,
+        1.0
+    };
+
+    static constexpr std::array<std::array<double, 6>, 6> a = {{
+        {{0,0,0,0,0,0}},
+        {{1.0/5.0,0,0,0,0,0}},
+        {{3.0/40.0,9.0/40.0,0,0,0,0}},
+        {{44.0/45.0,-56.0/15.0,32.0/9.0,0,0,0}},
+        {{19372.0/6561.0,-25360.0/2187.0,64448.0/6561.0,-212.0/729.0,0,0}},
+        {{9017.0/3168.0,-355.0/33.0,46732.0/5247.0,49.0/176.0,-5103.0/18656.0,0}}
+    }};
+
+    static constexpr std::array<double, 6> b_high = {
+        35.0/384.0,
+        0.0,
+        500.0/1113.0,
+        125.0/192.0,
+        -2187.0/6784.0,
+        11.0/84.0
+    };
+
+    static constexpr std::array<double, 6> b_low = {
+        5179.0/57600.0,
+        0.0,
+        7571.0/16695.0,
+        393.0/640.0,
+        -92097.0/339200.0,
+        187.0/2100.0
+    };
+
+    template<std::size_t N>
+    static DefaultErrorNorm<State> compute_error(const State& y,
+                                const State& y_high,
+                                const std::array<State, N>& k,
+                                const State& k_fsal,
+                                double dt)
+    {
+        State y_low = y;
+
+        for (std::size_t i = 0; i < 6; ++i)
+            y_low = y_low + dt * b_low[i] * k[i];
+
+        if constexpr (fsal_embedded)
+            y_low = y_low + dt * b_low_fsal * k_fsal;
+
+        return DefaultErrorNorm<State>(y_high - y_low, y, y_high);
+    }
+};
 
 template<typename State>
 struct DOP853Tableau
