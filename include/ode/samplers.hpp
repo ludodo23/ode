@@ -1,6 +1,7 @@
 #pragma once
 
 #include "solution.hpp"
+#include "states.hpp"
 #include <vector>
 #include <stdexcept>
 
@@ -65,7 +66,7 @@ public:
         return Solution<S>{
             std::move(t_),
             std::move(y_),
-            {},
+            std::move(yp_),
             {},       // pas d'interpolant global
             true, 0, 0, "OK"
         };
@@ -76,6 +77,7 @@ private:
     std::vector<double> t_;
     /** @brief The states at the sampled times. */
     std::vector<S>      y_;
+    std::vector<S>     yp_;
 };
 
 // ─── TEvalSampler : évalue aux instants t_eval via dense output ──────────────
@@ -146,7 +148,7 @@ public:
         return Solution<S>{
             std::move(t_out_),
             std::move(y_out_),
-            {},
+            std::move(yp_out_),
             {},
             true, 0, 0, "OK"
         };
@@ -156,6 +158,7 @@ private:
     std::vector<double> t_eval_;
     std::vector<double> t_out_;
     std::vector<S>      y_out_;
+    std::vector<S>     yp_out_;
     size_t              idx_    = 0;
     double              t_prev_ = 0.0;
     S                   y_prev_ = {};
