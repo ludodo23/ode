@@ -177,6 +177,7 @@ struct RK23DenseOutput {
 template <typename State>
 struct RK23Tableau {
     using error_type = DefaultErrorNorm<State>;
+    using dense_type = RK23DenseOutput<State>;
     static constexpr bool fsal = true;
     static constexpr bool fsal_embedded = true;
     static constexpr double b_low_fsal = 1.0 / 8.0;
@@ -200,7 +201,7 @@ struct RK23Tableau {
     };
 
     template<std::size_t N>
-    static DefaultErrorNorm<State> compute_error(const State& y,
+    static error_type compute_error(const State& y,
                                 const State& y_high,
                                 const std::array<State, N>& k,
                                 const State& k_fsal,
@@ -316,6 +317,7 @@ struct RK45DenseOutput {
 template <typename State>
 struct RK45Tableau {
     using error_type = DefaultErrorNorm<State>;
+    using dense_type = RK45DenseOutput<State>;
     static constexpr bool fsal = true;
     static constexpr bool fsal_embedded = true;
     static constexpr double b_low_fsal = 1.0 / 40.0;
@@ -357,7 +359,7 @@ struct RK45Tableau {
     };
 
     template<std::size_t N>
-    static DefaultErrorNorm<State> compute_error(const State& y,
+    static error_type compute_error(const State& y,
                                 const State& y_high,
                                 const std::array<State, N>& k,
                                 const State& k_fsal,
