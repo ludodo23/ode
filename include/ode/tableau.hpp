@@ -216,6 +216,19 @@ struct RK23Tableau {
 
         return DefaultErrorNorm<State>(y_high - y_low, y, y_high);
     }
+
+template<typename Problem, std::size_t N>
+    static dense_type make_dense(
+        const Problem& prob,
+        double t,
+        const State& y,
+        const State& y_next,
+        double dt,
+        const std::array<State, N>& k,
+        const State& k_fsal)
+    {
+return {y, y_next, k[0], k_fsal, t, dt};
+}
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -360,6 +373,20 @@ struct RK45Tableau {
 
         return DefaultErrorNorm<State>(y_high - y_low, y, y_high);
     }
+
+    template<typename Problem, std::size_t N>
+    static dense_type make_dense(
+        const Problem& prob,
+        double t,
+        const State& y,
+        const State& y_next,
+        double dt,
+        const std::array<State, N>& k,
+        const State&)
+    {
+return RK45DenseOutput{y, k[0], k[2], k[3], k[4], k[5], t, dt};
+}
+
 };
 
 template<typename State>
