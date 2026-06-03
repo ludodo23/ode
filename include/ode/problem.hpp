@@ -86,4 +86,25 @@ auto make_separable(A a, S x0, S v0, double t0) {
                                   std::move(v0), t0);
 }
 
+// ─── Traits de détection du type de problème ─────────────────────────────────
+
+template<typename T>
+struct is_second_order : std::false_type {};
+
+template<typename S, typename F>
+struct is_second_order<SecondOrderODEProblem<S, F>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_second_order_v = is_second_order<T>::value;
+
+
+template<typename T>
+struct is_separable : std::false_type {};
+
+template<typename S, typename F, typename G>
+struct is_separable<SeparableODEProblem<S, F, G>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_separable_v = is_separable<T>::value;
+
 } // namespace ode
