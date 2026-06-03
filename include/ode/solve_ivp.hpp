@@ -178,28 +178,95 @@ struct Verlet {
 // API principale
 // ════════════════════════════════════════════════════════════════════════════
 
-template<typename Problem, typename Method>
-auto solve_ivp(const Problem& prob, Method, Options opts = {})
-{
-    using State = typename Problem::state_type;
 
-    auto stepper    = Method::template make_stepper<Problem>(prob);
-    auto controller = Method::make_controller(opts);
-    auto sampler    = Method::template make_sampler<State>(opts);
 
-    return integrate(prob, stepper, controller, sampler,
-                     opts.t_end, opts.max_steps);
-}
+// ─── solve_separable : point d'entrée pour les problèmes séparables ──────────
+// Sans Method → Velocity Verlet (symplectique, pas fixe)
+// Avec Method → intégrateur classique (RK4, RK45, etc.) ou Verlet explicite
 
-// Surcharge pour les problèmes séparables (Verlet)
 template<typename Problem>
+    requires is_separable_v<Problem>
 auto solve_separable(const Problem& prob, Options opts = {})
 {
-    auto stepper = VelocityVerletStepper<Problem>{};
-    BasicSampler<typename Problem::state_type> sampler;
+    return solve_separable(prob, Verlet{}, opts);
+}
 
-    return integrate_separable(prob, stepper, sampler,
-                                opts.t_end, opts.dt, opts.max_steps);
+template<typename Problem, typename Method>
+    requires is_separable_v<Problem>
+auto solve_separable(const Problem& prob, Method, Options opts = {})
+{
+    using S   = typename Problem::state_type;
+    using Aug = AugmentedState<S>;
+
+    if constexpr (std::is_same_v<Method, Verlet>) {
+        auto stepper = Method::template make_stepper<Problem>(prob);
+        auto sampler = Method::template make_sampler<Aug>(opts);
+        //                                           ^^^
+        //   → BasicSampler<AugmentedState<S>>
+        //   → result() retourne Solution<S> avec y et yp remplis
+
+        return integrate_separable(prob, stepper, sampler,
+                                   opts.t_end, opts.dt, opts.max_steps);
+    } else {
+        auto stepper    = Method::template make_stepper<Problem>(prob);
+        auto controller = Method::make_controller(opts);
+        auto sampler    = Method::template make_sampler<Aug>(opts);
+        //                                               ^^^
+        //   Même convention : AugmentedState pour les séparables
+
+        return integrate(prob, stepper, controller, sampler,
+                         opts.t_end, opts.max_steps);
+    }
+}
+
+// ─── solve_ivp : point d'entrée unifié ───────────────────────────────────────
+//
+// Dispatche à la compilation selon le type de problème :
+//
+//   SeparableODEProblem  + sans Method  → solve_separable (Verlet par défaut)
+//   SeparableODEProblem  + Method       → solve_separable (Verlet ou classique)
+//   SecondOrderODEProblem               → réduction d'ordre + intégrateur classique
+//   ODEProblem                          → intégrateur classique
+
+template<typename Problem>
+    requires is_separable_v<Problem>
+auto solve_ivp(const Problem& prob, Options opts = {})
+{
+    return solve_separable(prob, opts);
+}
+
+template<typename Problem, typename Method>
+auto solve_ivp(const Problem& prob, Method method, Options opts = {})
+{
+    if constexpr (is_separable_v<Problem>) {
+        return solve_separable(prob, method, opts);
+
+    } else if constexpr (is_second_order_v<Problem>) {
+        using S   = typename Problem::state_type;
+        using Aug = AugmentedState<S>;
+
+        auto f_aug    = [&prob](double t, const Aug& z) -> Aug {
+            return { z.yp, prob.f(t, z.y, z.yp) };
+        };
+        auto aug_prob = make_problem(f_aug, prob.t0, Aug{prob.y0, prob.yp0});
+
+        auto stepper    = Method::template make_stepper<decltype(aug_prob)>(aug_prob);
+        auto controller = Method::make_controller(opts);
+        auto sampler    = Method::template make_sampler<Aug>(opts);
+
+        return integrate(aug_prob, stepper, controller, sampler,
+                         opts.t_end, opts.max_steps);
+
+    } else {
+        using S = typename Problem::state_type;
+
+        auto stepper    = Method::template make_stepper<Problem>(prob);
+        auto controller = Method::make_controller(opts);
+        auto sampler    = Method::template make_sampler<S>(opts);
+
+        return integrate(prob, stepper, controller, sampler,
+                         opts.t_end, opts.max_steps);
+    }
 }
 
 } // namespace ode
