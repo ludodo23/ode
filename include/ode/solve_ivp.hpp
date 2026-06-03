@@ -168,6 +168,12 @@ struct RK45Dense {
     }
 };
 
+struct Verlet {
+    template<typename P> static auto make_stepper(const P&)      { return VelocityVerletStepper<P>{}; }
+    static auto make_controller(const Options& o)                 { return FixedController{o.dt}; }
+    template<typename S> static auto make_sampler(const Options&) { return BasicSampler<S>{}; }
+};
+
 // ════════════════════════════════════════════════════════════════════════════
 // API principale
 // ════════════════════════════════════════════════════════════════════════════
