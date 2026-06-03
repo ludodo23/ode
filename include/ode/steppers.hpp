@@ -207,21 +207,17 @@ using RK45Stepper = EmbeddedRKStepper<Problem, 6, RK23Tableau<typename Problem::
  */
 template<typename Problem>
 struct VelocityVerletStepper {
-    using State = typename Problem::state_type;
+    using S     = typename Problem::state_type;
+    using State = AugmentedState<S>;
 
-    struct Result {
-        State x;
-        State v;
-    };
-
-    Result step(const Problem& prob,
-                double /*t*/, const State& x, const State& v, double dt) const
+    StepResult<State> step(const Problem& prob,
+               double /*t*/, const State& z, double dt) const
     {
-        State a0    = prob.accel(x);
-        State v_mid = v    + (dt/2.0) * a0;
-        State x_new = x    + dt       * v_mid;
-        State a1    = prob.accel(x_new);
-        State v_new = v_mid + (dt/2.0) * a1;
+        S a0    = prob.accel(z.y);
+        S v_mid = z.yp + (dt/2.0) * a0;
+        S x_new = z.y  + dt       * v_mid;
+        S a1    = prob.accel(x_new);
+        S v_new = v_mid + (dt/2.0) * a1;
         return {x_new, v_new};
     }
 };
