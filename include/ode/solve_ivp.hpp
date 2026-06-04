@@ -174,6 +174,15 @@ struct Verlet {
     template<typename S> static auto make_sampler(const Options&) { return BasicSampler<S>{}; }
 };
 
+template<typename T>
+struct is_symplectic : std::false_type {};
+
+template<>
+struct is_symplectic<Verlet> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_symplectic_v = is_symplectic<T>::value;
+
 // ════════════════════════════════════════════════════════════════════════════
 // API principale
 // ════════════════════════════════════════════════════════════════════════════
