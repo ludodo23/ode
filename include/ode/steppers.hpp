@@ -165,7 +165,7 @@ struct EmbeddedRKStepper {
         // ---------------------------------------------------------------------
         // Dense output
         // ---------------------------------------------------------------------
-        auto dense = Tableau::make_dense(y, y_high, k, k_fsal, t, dt);
+        auto dense = Tableau::make_dense(prob, t, y, y_next, dt, k, k_fsal)
 
         return {
             y_high,
