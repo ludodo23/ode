@@ -42,39 +42,6 @@ auto integrate(const Problem& prob,
     int    n_rejected = 0;
 
     constexpr double eps = 1e-12;
-
-    if constexpr (is_separable_v<Problem>) {
-        // ── Problème séparable : état splitté (x, v) ────────────────────────
-        // Le stepper travaille sur AugmentedState<State>, le sampler aussi.
-        using Aug = AugmentedState<State>;
-
-        Aug z{prob.x0, prob.v0};
-        sampler.init(t, z);
-
-        while (t < t_end) {
-            if (n_steps >= max_steps && max_steps >= 0) {
-                auto sol       = sampler.result();
-                sol.success    = false;
-                sol.message    = "Max steps reached";
-                sol.n_steps    = n_steps;
-                sol.n_rejected = n_rejected;
-                return sol;
-            }
-
-            double dt = std::min(controller.dt(), t_end - t);
-            if (dt < eps * (1.0 + std::abs(t_end))) break;
-
-            Aug res = stepper.step(prob, t, z, dt);
-
-            t += dt;
-            z  = res;
-            ++n_steps;
-
-            sampler.observe(t, z);
-        }
-
-    } else {
-        // ── Problème standard premier ou second ordre ────────────────────────
         State y = prob.y0;
         sampler.init(t, y);
 
@@ -111,7 +78,7 @@ auto integrate(const Problem& prob,
                 sampler.observe(t, y);
             }
         }
-    }
+
 
     auto sol       = sampler.result();
     sol.n_steps    = n_steps;
