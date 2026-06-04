@@ -195,21 +195,37 @@ inline constexpr bool is_symplectic_v = is_symplectic<T>::value;
 //   SeparableODEProblem  + sans Method  → solve_separable (Verlet par défaut)
 //   SeparableODEProblem  + Method       → solve_separable (Verlet ou classique)
 //   SecondOrderODEProblem               → réduction d'ordre + intégrateur classique
-//   ODEProblem                          → intégrateur classique
-
-template<typename Problem>
-    requires is_separable_v<Problem>
-auto solve_ivp(const Problem& prob, Options opts = {})
-{
-    return solve_separable(prob, opts);
-}
+//   ODEProblem                          → intégrateur classique 
 
 template<typename Problem, typename Method>
 auto solve_ivp(const Problem& prob, Method method, Options opts = {})
 {
-    if constexpr (is_separable_v<Problem>) {
-        return solve_separable(prob, method, opts);
+    if constexpr (is_separable_v<Problem> && is_symplectic_v<Method>) {
+        using S   = typename Problem::state_type;
+        using Aug = AugmentedState<S>;
 
+auto stepper    = Method::template make_stepper<Problem>(prob);
+        auto controller = Method::make_controller(opts);
+        auto sampler    = Method::template make_sampler<Aug>(opts);
+
+        return integrate(prob, stepper, controller, sampler,
+                         opts.t_end, opts.max_steps);
+
+} else if constexpr (is_separable_v<Problem>) {
+using S   = typename Problem::state_type;
+        using Aug = AugmentedState<S>;
+
+auto f_aug    = [&prob](double t, const Aug& z) -> Aug {
+            return { z.yp, prob.f(z.y) };
+        };
+        auto aug_prob = make_problem(f_aug, prob.t0, Aug{prob.y0, prob.yp0});
+
+auto stepper    = Method::template make_stepper<decltype(aug_prob)>(prob);
+        auto controller = Method::make_controller(opts);
+        auto sampler    = Method::template make_sampler<Aug>(opts);
+
+        return integrate(prob, stepper, controller, sampler,
+                         opts.t_end, opts.max_steps);
     } else if constexpr (is_second_order_v<Problem>) {
         using S   = typename Problem::state_type;
         using Aug = AugmentedState<S>;
