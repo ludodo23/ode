@@ -187,54 +187,57 @@ inline constexpr bool is_symplectic_v = is_symplectic<T>::value;
 // API principale
 // ════════════════════════════════════════════════════════════════════════════
 
+// ─── Helper : construit un ODEProblem<AugmentedState<S>> ─────────────────────
+// Unifie la réduction pour SecondOrderODEProblem et SeparableODEProblem.
 
-// ─── solve_ivp : point d'entrée unifié ───────────────────────────────────────
-//
-// Dispatche à la compilation selon le type de problème :
-//
-//   SeparableODEProblem  + sans Method  → solve_separable (Verlet par défaut)
-//   SeparableODEProblem  + Method       → solve_separable (Verlet ou classique)
-//   SecondOrderODEProblem               → réduction d'ordre + intégrateur classique
-//   ODEProblem                          → intégrateur classique 
+template<typename Problem>
+auto make_aug_problem(const Problem& prob)
+{
+    using S   = typename Problem::state_type;
+    using Aug = AugmentedState<S>;
+
+    if constexpr (is_separable_v<Problem>) {
+        // z' = {v, accel(x)} — accel ne dépend pas de t
+        return make_problem(
+            [&prob](double /*t*/, const Aug& z) -> Aug {
+                return { z.yp, prob.accel(z.y) };
+            },
+            prob.t0, Aug{prob.x0, prob.v0}
+        );
+    } else {
+        // z' = {y', f(t, y, y')}
+        return make_problem(
+            [&prob](double t, const Aug& z) -> Aug {
+                return { z.yp, prob.f(t, z.y, z.yp) };
+            },
+            prob.t0, Aug{prob.y0, prob.yp0}
+        );
+    }
+}
+
+// ─── solve_ivp ───────────────────────────────────────────────────────────────
 
 template<typename Problem, typename Method>
-auto solve_ivp(const Problem& prob, Method method, Options opts = {})
+auto solve_ivp(const Problem& prob, Method, Options opts = {})
 {
     if constexpr (is_separable_v<Problem> && is_symplectic_v<Method>) {
+        // ── Symplectique : passe directement, le stepper exploite (x, v) ────
         using S   = typename Problem::state_type;
         using Aug = AugmentedState<S>;
 
-auto stepper    = Method::template make_stepper<Problem>(prob);
+        auto stepper    = Method::template make_stepper<Problem>(prob);
         auto controller = Method::make_controller(opts);
         auto sampler    = Method::template make_sampler<Aug>(opts);
 
         return integrate(prob, stepper, controller, sampler,
                          opts.t_end, opts.max_steps);
 
-} else if constexpr (is_separable_v<Problem>) {
-using S   = typename Problem::state_type;
-        using Aug = AugmentedState<S>;
-
-auto f_aug    = [&prob](double t, const Aug& z) -> Aug {
-            return { z.yp, prob.f(z.y) };
-        };
-        auto aug_prob = make_problem(f_aug, prob.t0, Aug{prob.y0, prob.yp0});
-
-auto stepper    = Method::template make_stepper<decltype(aug_prob)>(prob);
-        auto controller = Method::make_controller(opts);
-        auto sampler    = Method::template make_sampler<Aug>(opts);
-
-        return integrate(prob, stepper, controller, sampler,
-                         opts.t_end, opts.max_steps);
-    } else if constexpr (is_second_order_v<Problem>) {
+    } else if constexpr (is_separable_v<Problem> || is_second_order_v<Problem>) {
+        // ── Séparable classique ou second ordre : réduction vers AugmentedState
         using S   = typename Problem::state_type;
         using Aug = AugmentedState<S>;
 
-        auto f_aug    = [&prob](double t, const Aug& z) -> Aug {
-            return { z.yp, prob.f(t, z.y, z.yp) };
-        };
-        auto aug_prob = make_problem(f_aug, prob.t0, Aug{prob.y0, prob.yp0});
-
+        auto aug_prob   = make_aug_problem(prob);
         auto stepper    = Method::template make_stepper<decltype(aug_prob)>(aug_prob);
         auto controller = Method::make_controller(opts);
         auto sampler    = Method::template make_sampler<Aug>(opts);
@@ -243,6 +246,7 @@ auto stepper    = Method::template make_stepper<decltype(aug_prob)>(prob);
                          opts.t_end, opts.max_steps);
 
     } else {
+        // ── Premier ordre standard ────────────────────────────────────────────
         using S = typename Problem::state_type;
 
         auto stepper    = Method::template make_stepper<Problem>(prob);
@@ -253,5 +257,6 @@ auto stepper    = Method::template make_stepper<decltype(aug_prob)>(prob);
                          opts.t_end, opts.max_steps);
     }
 }
+
 
 } // namespace ode
