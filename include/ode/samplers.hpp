@@ -1,7 +1,7 @@
 #pragma once
 
-#include "solution.hpp"
-#include "states.hpp"
+#include "ode/solution.hpp"
+#include "ode/states.hpp"
 #include <vector>
 #include <stdexcept>
 
