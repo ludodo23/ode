@@ -1,8 +1,8 @@
 #pragma once
 
-#include "problem.hpp"
-#include "controllers.hpp"
-#include "samplers.hpp"
+#include "ode/problem.hpp"
+#include "ode/controllers.hpp"
+#include "ode/samplers.hpp"
 
 namespace ode {
 
