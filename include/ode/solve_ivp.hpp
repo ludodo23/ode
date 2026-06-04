@@ -188,46 +188,6 @@ inline constexpr bool is_symplectic_v = is_symplectic<T>::value;
 // ════════════════════════════════════════════════════════════════════════════
 
 
-
-// ─── solve_separable : point d'entrée pour les problèmes séparables ──────────
-// Sans Method → Velocity Verlet (symplectique, pas fixe)
-// Avec Method → intégrateur classique (RK4, RK45, etc.) ou Verlet explicite
-
-template<typename Problem>
-    requires is_separable_v<Problem>
-auto solve_separable(const Problem& prob, Options opts = {})
-{
-    return solve_separable(prob, Verlet{}, opts);
-}
-
-template<typename Problem, typename Method>
-    requires is_separable_v<Problem>
-auto solve_separable(const Problem& prob, Method, Options opts = {})
-{
-    using S   = typename Problem::state_type;
-    using Aug = AugmentedState<S>;
-
-    if constexpr (std::is_same_v<Method, Verlet>) {
-        auto stepper = Method::template make_stepper<Problem>(prob);
-        auto sampler = Method::template make_sampler<Aug>(opts);
-        //                                           ^^^
-        //   → BasicSampler<AugmentedState<S>>
-        //   → result() retourne Solution<S> avec y et yp remplis
-
-        return integrate_separable(prob, stepper, sampler,
-                                   opts.t_end, opts.dt, opts.max_steps);
-    } else {
-        auto stepper    = Method::template make_stepper<Problem>(prob);
-        auto controller = Method::make_controller(opts);
-        auto sampler    = Method::template make_sampler<Aug>(opts);
-        //                                               ^^^
-        //   Même convention : AugmentedState pour les séparables
-
-        return integrate(prob, stepper, controller, sampler,
-                         opts.t_end, opts.max_steps);
-    }
-}
-
 // ─── solve_ivp : point d'entrée unifié ───────────────────────────────────────
 //
 // Dispatche à la compilation selon le type de problème :
