@@ -27,4 +27,13 @@ struct VelocityVerletStepper {
     }
 };
 
+template<typename T>
+struct is_symplectic : std::false_type {};
+
+template<typename S>
+struct is_symplectic<VelocityVerletStepper<S>> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_symplectic_v = is_separable<T>::value;
+
 } // namespace ode
