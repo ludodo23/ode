@@ -1,9 +1,9 @@
 #pragma once
 
-#include "integrate.hpp"
-#include "steppers.hpp"
-#include "controllers.hpp"
-#include "samplers.hpp"
+#include "ode/integrate.hpp"
+#include "ode/steppers.hpp"
+#include "ode/controllers.hpp"
+#include "ode/samplers.hpp"
 
 namespace ode {
 
