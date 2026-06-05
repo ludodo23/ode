@@ -125,7 +125,7 @@ struct DOP853ErrorNorm {
  * @tparam State State type.
  * 
  */
-template<typename State>
+template<StateType State>
 struct RK23DenseOutput {
     State y0, y1, k1, k4;
     double t0, dt;
@@ -174,7 +174,7 @@ struct RK23DenseOutput {
  * - y_low = y + dt*(7/24*k1 + 1/4*k2 + 1/3*k3 + 1/8*k4) (if fsal_embedded is true, add 1/8*k4 to the low-order solution)
  *  
  */
-template <typename State>
+template <StateType State>
 struct RK23Tableau {
     using error_type = DefaultErrorNorm<State>;
     using dense_type = RK23DenseOutput<State>;
@@ -246,7 +246,7 @@ return {y, y_next, k[0], k_fsal, t, dt};
  * 
  *  @tparam State State type.
  */
-template<typename State>
+template<StateType State>
 struct RK45DenseOutput {
     State y0, k1, k3, k4, k5, k6;
     double t0, dt;
@@ -314,7 +314,7 @@ struct RK45DenseOutput {
  * 
  *  @tparam State State type.
  */
-template <typename State>
+template <StateType State>
 struct RK45Tableau {
     using error_type = DefaultErrorNorm<State>;
     using dense_type = RK45DenseOutput<State>;
@@ -391,7 +391,7 @@ return RK45DenseOutput{y, k[0], k[2], k[3], k[4], k[5], t, dt};
 
 };
 
-template<typename State>
+template<StateType  State>
 struct DOP853Tableau
 {
     using error_type = DOP853Error<State>;
