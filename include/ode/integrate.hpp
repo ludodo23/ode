@@ -42,42 +42,42 @@ auto integrate(const Problem& prob,
     int    n_rejected = 0;
 
     constexpr double eps = 1e-12;
-        State y = prob.y0;
-        sampler.init(t, y);
+    State y = prob.y0;
+    sampler.init(t, y);
 
-        while (t < t_end) {
-            if (n_steps >= max_steps && max_steps >= 0) {
-                auto sol       = sampler.result();
-                sol.success    = false;
-                sol.message    = "Max steps reached";
-                sol.n_steps    = n_steps;
-                sol.n_rejected = n_rejected;
-                return sol;
-            }
+    while (t < t_end) {
+        if (n_steps >= max_steps && max_steps >= 0) {
+            auto sol       = sampler.result();
+            sol.success    = false;
+            sol.message    = "Max steps reached";
+            sol.n_steps    = n_steps;
+            sol.n_rejected = n_rejected;
+            return sol;
+        }
 
-            double dt = std::min(controller.dt(), t_end - t);
-            if (dt < eps * (1.0 + std::abs(t_end))) break;
+        double dt = std::min(controller.dt(), t_end - t);
+        if (dt < eps * (1.0 + std::abs(t_end))) break;
 
-            auto res = stepper.step(prob, t, y, dt);
+        auto res = stepper.step(prob, t, y, dt);
 
-            if constexpr (requires { res.error; }) {
-                double norm_error = res.error(controller.atol(), controller.rtol());
-                if (!controller.accept_normalized(norm_error)) {
-                    ++n_rejected;
-                    continue;
-                }
-            }
-
-            t += dt;
-            y  = res.y;
-            ++n_steps;
-
-            if constexpr (requires { res.dense; }) {
-                sampler.observe(t, y, res.dense);
-            } else {
-                sampler.observe(t, y);
+        if constexpr (requires { res.error; }) {
+            double norm_error = res.error(controller.atol(), controller.rtol());
+            if (!controller.accept_normalized(norm_error)) {
+                ++n_rejected;
+                continue;
             }
         }
+
+        t += dt;
+        y  = res.y;
+        ++n_steps;
+
+        if constexpr (requires { res.dense; }) {
+            sampler.observe(t, y, res.dense);
+        } else {
+            sampler.observe(t, y);
+        }
+    }
 
 
     auto sol       = sampler.result();
