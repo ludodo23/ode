@@ -168,6 +168,16 @@ struct RK45Dense {
     }
 };
 
+struct DOP853Dense {
+    template<typename P> static auto make_stepper(const P&) { return Dop853Stepper<P>{}; }
+    static auto make_controller(const Options& o) {
+        return AdaptiveController{o.dt, o.rtol, o.atol, o.dt_min, o.dt_max, 8};
+    }
+    template<typename S> static auto make_sampler(const Options& o) {
+        return TEvalSampler<S>{o.t_eval};
+    }
+};
+
 struct Verlet {
     template<typename P> static auto make_stepper(const P&)      { return VelocityVerletStepper<P>{}; }
     static auto make_controller(const Options& o)                 { return FixedController{o.dt}; }
