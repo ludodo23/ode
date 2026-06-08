@@ -35,7 +35,7 @@ auto integrate(const Problem& prob,
                double         t_end,
                int            max_steps = 1'000'000)
 {
-    using State = typename Problem::state_type;
+    using State = typename Stepper::State;
 
     double t = prob.t0;
     int    n_steps    = 0;

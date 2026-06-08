@@ -202,7 +202,7 @@ auto make_aug_problem(const Problem& prob)
             [&prob](double /*t*/, const Aug& z) -> Aug {
                 return { z.yp, prob.accel(z.y) };
             },
-            prob.t0, Aug{prob.x0, prob.v0}
+            prob.t0, Aug{prob.y0, prob.v0}
         );
     } else {
         // z' = {y', f(t, y, y')}
@@ -220,19 +220,20 @@ auto make_aug_problem(const Problem& prob)
 template<typename Problem, typename Method>
 auto solve_ivp(const Problem& prob, Method, Options opts = {})
 {
-    if constexpr (is_separable_v<Problem> && is_symplectic_v<Method>) {
-        // ── Symplectique : passe directement, le stepper exploite (x, v) ────
-        using S   = typename Problem::state_type;
-        using Aug = AugmentedState<S>;
+    // if constexpr (is_separable_v<Problem> && is_symplectic_v<Method>) {
+    //     // ── Symplectique : passe directement, le stepper exploite (x, v) ────
+    //     using S   = typename Problem::state_type;
+    //     using Aug = AugmentedState<S>;
 
-        auto stepper    = Method::template make_stepper<Problem>(prob);
-        auto controller = Method::make_controller(opts);
-        auto sampler    = Method::template make_sampler<Aug>(opts);
+    //     auto stepper    = Method::template make_stepper<Problem>(prob);
+    //     auto controller = Method::make_controller(opts);
+    //     auto sampler    = Method::template make_sampler<Aug>(opts);
 
-        return integrate(prob, stepper, controller, sampler,
-                         opts.t_end, opts.max_steps);
+    //     return integrate(prob, stepper, controller, sampler,
+    //                      opts.t_end, opts.max_steps);
 
-    } else if constexpr (is_separable_v<Problem> || is_second_order_v<Problem>) {
+    // } else 
+    if constexpr (is_separable_v<Problem> || is_second_order_v<Problem>) {
         // ── Séparable classique ou second ordre : réduction vers AugmentedState
         using S   = typename Problem::state_type;
         using Aug = AugmentedState<S>;

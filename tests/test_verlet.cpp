@@ -25,7 +25,7 @@ TEST_CASE("Verlet - harmonic oscillator : return to initial conditions after one
     opts.t_end = 2.0 * M_PI;
     opts.dt    = 1e-3;
 
-    auto sol = solve_separable(prob, opts);
+    auto sol = solve_ivp(prob, Verlet{}, opts);
 
     CHECK_THAT(sol.y.back(), WithinAbs(1.0, 1e-5));
 }
@@ -37,22 +37,23 @@ TEST_CASE("Verlet - energy conservation (harmonic oscillator)", "[verlet][energy
 
     auto accel = [](const double& x) { return -x; };
     auto prob  = make_separable(accel, 1.0, 0.0, 0.0);
+    auto aug_prob = make_aug_problem(prob);  // pour utiliser VelocityVerletStepper
 
-    // On intègre via la boucle manuelle pour avoir x ET v
-    VelocityVerletStepper<decltype(prob)> stepper;
-    double t = 0.0, x = 1.0, v = 0.0;
-    double dt = 1e-2;
-    double E0 = 0.5*(v*v + x*x);
+     // Intégration manuelle pour avoir accès à x ET v à chaque pas
+     VelocityVerletStepper<decltype(aug_prob)> stepper;
+     double t = 0.0, x = 1.0, v = 0.0;
+     double dt = 1e-2;
+     double E0 = 0.5*(v*v + x*x);
 
-    double E_max_drift = 0.0;
-    for (int i = 0; i < 10000; ++i) {  // 100 périodes
-        auto res = stepper.step(prob, t, x, v, dt);
-        t += dt;
-        x = res.x;
-        v = res.v;
-        double E = 0.5*(v*v + x*x);
-        E_max_drift = std::max(E_max_drift, std::abs(E - E0));
-    }
+     double E_max_drift = 0.0;
+     for (int i = 0; i < 10000; ++i) {  // 100 périodes
+         auto res = stepper.step(aug_prob, t, {x, v}, dt);
+         t += dt;
+         x = res.y.y;
+         v = res.y.yp;
+         double E = 0.5*(v*v + x*x);
+         E_max_drift = std::max(E_max_drift, std::abs(E - E0));
+     }
 
     // Énergie bornée (pas de dérive séculaire pour un intégrateur symplectique)
     CHECK(E_max_drift < 1e-4);
@@ -68,24 +69,24 @@ TEST_CASE("Verlet - Kepler circular orbit : energy conservation", "[verlet][kepl
         0.0
     );
 
-    VelocityVerletStepper<decltype(prob)> stepper;
-    Vec2   r{1.0, 0.0}, v{0.0, 1.0};
-    double t  = 0.0;
-    double dt = 1e-3;
-    double E0 = kepler_energy(r, v);  // = -0.5
+    auto aug_prob = make_aug_problem(prob);  // pour utiliser VelocityVerletStepper
 
-    double E_max_drift = 0.0;
-    int    n_periods   = 10;
-    int    n_steps     = static_cast<int>(n_periods * 2.0*M_PI / dt);
+     // Intégration manuelle pour avoir accès à r ET v à chaque pas
+     VelocityVerletStepper<decltype(aug_prob)> stepper;
+     Vec2   r{1.0, 0.0}, v{0.0, 1.0};
+     double t = 0.0;
+     double dt = 1e-3;
+     double E0 = kepler_energy(r, v);  // = -0.5
 
-    for (int i = 0; i < n_steps; ++i) {
-        auto res = stepper.step(prob, t, r, v, dt);
-        t += dt;
-        r = res.x;
-        v = res.v;
-        double E = kepler_energy(r, v);
-        E_max_drift = std::max(E_max_drift, std::abs(E - E0));
-    }
+     double E_max_drift = 0.0;
+     for (int i = 0; i < 10000; ++i) {  // ~10 orbites
+         auto res = stepper.step(aug_prob, t, {r, v}, dt);
+         t += dt;
+         r = res.y.y;
+         v = res.y.yp;
+         double E = kepler_energy(r, v);
+         E_max_drift = std::max(E_max_drift, std::abs(E - E0));
+     }
 
     // Énergie bornée sur 10 orbites
     CHECK(E_max_drift < 1e-3);
@@ -100,21 +101,23 @@ TEST_CASE("Verlet - Kepler : return to initial position after one orbit", "[verl
         0.0
     );
 
+    auto aug_prob = make_aug_problem(prob);  // pour utiliser VelocityVerletStepper
+
     Options opts;
     opts.t_end = 2.0 * M_PI;
     opts.dt    = 1e-4;
 
     // Intégration manuelle
-    VelocityVerletStepper<decltype(prob)> stepper;
+    VelocityVerletStepper<decltype(aug_prob)> stepper;
     Vec2   r{1.0, 0.0}, v{0.0, 1.0};
     double t = 0.0;
 
     while (t < opts.t_end - opts.dt/2.0) {
         double step = std::min(opts.dt, opts.t_end - t);
-        auto res = stepper.step(prob, t, r, v, step);
+        auto res = stepper.step(aug_prob, t, {r, v}, step);
         t += step;
-        r = res.x;
-        v = res.v;
+        r = res.y.y;
+        v = res.y.yp;
     }
 
     CHECK_THAT(r.x, WithinAbs(1.0, 1e-4));
@@ -125,18 +128,19 @@ TEST_CASE("Verlet - order 2 : convergence on harmonic oscillator", "[verlet][con
 {
     auto accel = [](const double& x) { return -x; };
     auto prob  = make_separable(accel, 1.0, 0.0, 0.0);
+    auto aug_prob = make_aug_problem(prob);  // pour utiliser VelocityVerletStepper
 
     double t_end = 1.0;   // non-commensurable pour forcer un vrai dernier pas tronqué
     double exact = std::cos(t_end);
 
     auto integrate_verlet = [&](double dt) {
-        VelocityVerletStepper<decltype(prob)> stepper;
+        VelocityVerletStepper<decltype(aug_prob)> stepper;
         double t = 0.0, x = 1.0, v = 0.0;
         while (t < t_end) {
             double step = std::min(dt, t_end - t);
             if (step < 1e-14) break;
-            auto res = stepper.step(prob, t, x, v, step);
-            t += step; x = res.x; v = res.v;
+            auto res = stepper.step(aug_prob, t, {x, v}, step);
+            t += step; x = res.y.y; v = res.y.yp;
         }
         return x;
     };

@@ -1,3 +1,12 @@
+#pragma once
+
+#include <array>
+#include <cmath>
+
+#include "ode/concept_api.hpp"
+
+namespace ode {
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Tableaux de Butcher
 // ─────────────────────────────────────────────────────────────────────────────
@@ -391,7 +400,31 @@ return RK45DenseOutput{y, k[0], k[2], k[3], k[4], k[5], t, dt};
 
 };
 
-template<StateType  State>
+template<StateType State>
+struct DOP853DenseOutput
+{
+    State r[8];
+    double t0;
+    double dt;
+
+    State operator()(double t) const
+    {
+        double s = (t - t0) / dt;
+        double s1 = 1.0 - s;
+
+        // polynôme de degré 7 barycentrique stable (Hairer)
+        return r[0]
+             + s * (r[1]
+             + s1 * (r[2]
+             + s * (r[3]
+             + s1 * (r[4]
+             + s * (r[5]
+             + s1 * (r[6]
+             + s * r[7]))))));
+    }
+};
+
+template<StateType State>
 struct DOP853Tableau
 {
     using error_type = DOP853Error<State>;
@@ -505,3 +538,5 @@ struct DOP853Tableau
         };
     }
 };
+
+} // namespace ode

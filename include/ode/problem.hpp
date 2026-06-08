@@ -54,7 +54,7 @@ auto make_second_order_problem(F f, double t0, S y0, S yp0) {
 }
 
 
-// ─── Problème séparable : x'' = a(x),  x(t0)=x0, x'(t0)=v0 ────────────────
+// ─── Problème séparable : y'' = a(y),  y(t0)=y0, y'(t0)=v0 ────────────────
 // Utilisé par les intégrateurs symplectiques (Verlet, Yoshida…)
 
 /**
@@ -66,23 +66,23 @@ auto make_second_order_problem(F f, double t0, S y0, S yp0) {
  * @tparam A The acceleration function type.
  */
 template<StateType S, AccelFunction<S> A>
-struct SeparableProblem {
+struct SeparableODEProblem {
     using state_type = S;
     using accel_type = A;
 
     A      accel;
-    S      x0;
+    S      y0;
     S      v0;
     double t0;
 
-    SeparableProblem(A a, S x0_, S v0_, double t0_)
-        : accel(std::move(a)), x0(std::move(x0_)),
+    SeparableODEProblem(A a, S y0_, S v0_, double t0_)
+        : accel(std::move(a)), y0(std::move(y0_)),
           v0(std::move(v0_)), t0(t0_) {}
 };
 
 template<typename A, typename S>
-auto make_separable(A a, S x0, S v0, double t0) {
-    return SeparableProblem<S, A>(std::move(a), std::move(x0),
+auto make_separable(A a, S y0, S v0, double t0) {
+    return SeparableODEProblem<S, A>(std::move(a), std::move(y0),
                                   std::move(v0), t0);
 }
 
@@ -101,8 +101,8 @@ inline constexpr bool is_second_order_v = is_second_order<T>::value;
 template<typename T>
 struct is_separable : std::false_type {};
 
-template<typename S, typename F, typename G>
-struct is_separable<SeparableODEProblem<S, F, G>> : std::true_type {};
+template<typename S, typename F>
+struct is_separable<SeparableODEProblem<S, F>> : std::true_type {};
 
 template<typename T>
 inline constexpr bool is_separable_v = is_separable<T>::value;

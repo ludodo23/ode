@@ -151,6 +151,6 @@ TEST_CASE("make_separable - type deduction", "[problem][separable]")
 
     static_assert(std::same_as<typename decltype(prob)::state_type, double>);
     CHECK_THAT(prob.t0, WithinAbs(0.0, 1e-15));
-    CHECK_THAT(prob.x0, WithinAbs(1.0, 1e-15));
+    CHECK_THAT(prob.y0, WithinAbs(1.0, 1e-15));
     CHECK_THAT(prob.v0, WithinAbs(0.0, 1e-15));
 }

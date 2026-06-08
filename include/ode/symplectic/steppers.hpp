@@ -1,5 +1,9 @@
 #pragma once
 
+
+#include "ode/states.hpp"
+#include "ode/step_result.hpp"
+
 namespace ode {
 
 // ─── Velocity Verlet (Störmer-Verlet, ordre 2 symplectique) ─────────────────
@@ -12,18 +16,28 @@ namespace ode {
  */
 template<typename Problem>
 struct VelocityVerletStepper {
-    using S     = typename Problem::state_type;
-    using State = AugmentedState<S>;
+    using State = typename Problem::state_type;
 
-    StepResult<State> step(const Problem& prob,
-               double /*t*/, const State& z, double dt) const
+    StepResult<State>
+    step(const Problem& prob,
+         double t,
+         const State& z,
+         double dt) const
     {
-        S a0    = prob.accel(z.y);
-        S v_mid = z.yp + (dt/2.0) * a0;
-        S x_new = z.y  + dt       * v_mid;
-        S a1    = prob.accel(x_new);
-        S v_new = v_mid + (dt/2.0) * a1;
-        return {x_new, v_new};
+        auto dz0 = prob.f(t, z);
+
+        auto v_mid = z.yp + (dt * 0.5) * dz0.yp;
+        auto x_new = z.y  + dt * v_mid;
+
+        State z_tmp{x_new, v_mid};
+
+        auto dz1 = prob.f(t + dt, z_tmp);
+
+        auto v_new = v_mid + (dt * 0.5) * dz1.yp;
+
+        return StepResult<State>{
+            State{x_new, v_new}
+        };
     }
 };
 

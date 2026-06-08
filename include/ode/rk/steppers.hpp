@@ -60,7 +60,7 @@ struct ExplicitRKStepper {
 
         return { result };
     }
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Aliases lisibles
@@ -166,7 +166,7 @@ struct EmbeddedRKStepper {
         // ---------------------------------------------------------------------
         // Dense output
         // ---------------------------------------------------------------------
-        auto dense = Tableau::make_dense(prob, t, y, y_next, dt, k, k_fsal)
+        auto dense = Tableau::make_dense(prob, t, y, y_high, dt, k, k_fsal);
 
         return {
             y_high,
