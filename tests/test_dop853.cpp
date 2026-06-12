@@ -2,6 +2,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 
+#include <iostream>
+
 #include "test_problems.hpp"
 #include "ode.hpp"
 
@@ -24,7 +26,7 @@ TEST_CASE("DOP853 - exponential decay high accuracy", "[dop853]")
     opts.atol  = 1e-14;
     opts.dt    = 1e-2;
 
-    auto sol = solve_ivp(prob, DOP853Dense{}, opts);
+    auto sol = solve_ivp(prob, DOP853{}, opts);
 
     REQUIRE(sol.success);
 
@@ -49,8 +51,8 @@ TEST_CASE("DOP853 - convergence faster than RK45", "[dop853][comparison]")
     opts.atol  = 1e-10;
     opts.dt    = 1e-2;
 
-    auto sol45   = solve_ivp(prob, RK45Dense{}, opts);
-    auto sol853  = solve_ivp(prob, DOP853Dense{}, opts);
+    auto sol45   = solve_ivp(prob, RK45{}, opts);
+    auto sol853  = solve_ivp(prob, DOP853{}, opts);
 
     double err45  = std::abs(sol45.y.back()  - exact);
     double err853 = std::abs(sol853.y.back() - exact);
@@ -105,7 +107,7 @@ TEST_CASE("DOP853 - harmonic oscillator long term stability", "[dop853][oscillat
     opts.rtol  = 1e-10;
     opts.atol  = 1e-12;
 
-    auto sol = solve_ivp(prob, DOP853Dense{}, opts);
+    auto sol = solve_ivp(prob, DOP853{}, opts);
 
     REQUIRE(sol.success);
 
@@ -134,15 +136,23 @@ TEST_CASE("DOP853 - Kepler orbit energy stability", "[dop853][kepler]")
     opts.dt       = 0.1;
     opts.max_steps = 20000;
 
-    auto sol = solve_ivp(prob, DOP853Dense{}, opts);
+    auto sol = solve_ivp(prob, DOP853{}, opts);
+
+    std::cout << "DOP853 - Kepler orbit: n_steps = " << sol.n_steps << ", n_rejected = " << sol.n_rejected << std::endl;
 
     REQUIRE(sol.success);
+
+    std::cout << "Succes : " << sol.success << std::endl;
+    std::cout << "solution size : " << sol.y.size() << std::endl;
 
     // retour proche de la condition initiale
     CHECK_THAT(sol.y.back().x,  WithinAbs(1.0, 1e-3));
     CHECK_THAT(sol.y.back().y,  WithinAbs(0.0, 1e-3));
     CHECK_THAT(sol.y.back().vx, WithinAbs(0.0, 1e-3));
     CHECK_THAT(sol.y.back().vy, WithinAbs(1.0, 1e-3));
+
+    std::cout << "Position finale : x = " << sol.y.back().x << ", y = " << sol.y.back().y << std::endl;
+    std::cout << "Vitesse finale : vx = " << sol.y.back().vx << ", vy = " << sol.y.back().vy << std::endl;
 }
 
 
@@ -160,8 +170,8 @@ TEST_CASE("DOP853 - adaptive uses fewer steps than RK45 at same tolerance", "[do
     opts.atol  = 1e-11;
     opts.dt    = 1e-2;
 
-    auto sol45  = solve_ivp(prob, RK45Dense{}, opts);
-    auto sol853 = solve_ivp(prob, DOP853Dense{}, opts);
+    auto sol45  = solve_ivp(prob, RK45{}, opts);
+    auto sol853 = solve_ivp(prob, DOP853{}, opts);
 
     CHECK(sol853.n_steps < sol45.n_steps);
 }
@@ -182,7 +192,7 @@ TEST_CASE("DOP853 - rejected steps occur under stiffness", "[dop853][adaptive]")
     opts.rtol  = 1e-8;
     opts.atol  = 1e-10;
 
-    auto sol = solve_ivp(prob, DOP853Dense{}, opts);
+    auto sol = solve_ivp(prob, DOP853{}, opts);
 
     REQUIRE(sol.success);
 
@@ -210,6 +220,14 @@ TEST_CASE("DOP853 - dense output matches stored solution", "[dop853][dense]")
     auto sol = solve_ivp(prob, DOP853Dense{}, opts);
 
     REQUIRE(sol.t.size() == 5);
+
+    for(size_t i = 0; i < sol.t.size(); ++i)
+    {
+        double exact = std::exp(-sol.t[i]);
+
+        // Dense output doit être très précis (ordre 8)
+        std::cout << "t = " << sol.t[i] << ", y = " << sol.y[i] << ", exact = " << exact << std::endl;
+    }
 
     for (size_t i = 0; i < sol.t.size(); ++i)
     {
