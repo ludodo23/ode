@@ -409,28 +409,59 @@ template<StateType State>
 struct DOP853DenseOutput
 {
     State y0;
-    State F[7];
-
+    State F[7];  // F[0] à F[6]
     double t0;
     double dt;
 
     State operator()(double t) const {
-        double x = (t - t0) / dt;
+        double theta = (t - t0) / dt;  // θ ∈ [0,1]
         
-        State y{};  // zéro initialisé
+        // Polynômes de base
+        double theta2 = theta * theta;
+        double theta3 = theta2 * theta;
+        double theta4 = theta3 * theta;
+        double theta5 = theta4 * theta;
+        double theta6 = theta5 * theta;
         
-        for (int i = 0; i < 7; ++i) {
-            // F[7], F[6], ..., F[0]  (ordre inverse)
-            y = y + F[7 - i];          // ① addition d'abord
-            if (i % 2 == 0)
-                y = x * y;             // ② puis multiplication
-            else
-                y = (1.0 - x) * y;
-        }
-
-        return y0 + y;
+        double one_minus_theta = 1.0 - theta;
+        double one_minus_theta2 = one_minus_theta * one_minus_theta;
+        
+        // b_1(θ) = θ
+        double b1 = theta;
+        
+        // b_2(θ) = θ²(1-θ)
+        double b2 = theta2 * one_minus_theta;
+        
+        // b_3(θ) = θ²(1-θ)²
+        double b3 = theta2 * one_minus_theta2;
+        
+        // b_4(θ) = θ³(1-θ)²
+        double b4 = theta3 * one_minus_theta2;
+        
+        // b_5(θ) = θ⁴(1-θ)²
+        double b5 = theta4 * one_minus_theta2;
+        
+        // b_6(θ) = θ⁵(1-θ)²
+        double b6 = theta5 * one_minus_theta2;
+        
+        // b_7(θ) = θ⁶(1-θ)²
+        double b7 = theta6 * one_minus_theta2;
+        
+        // Combinaison linéaire
+        State result = y0;
+        result = result + b1 * F[0];
+        result = result + b2 * F[1];
+        result = result + b3 * F[2];
+        result = result + b4 * F[3];
+        result = result + b5 * F[4];
+        result = result + b6 * F[5];
+        result = result + b7 * F[6];
+        
+        return result;
     }
 };
+
+ 
 
 // values from https://docs.rs/ode_solvers/latest/src/ode_solvers/butcher_tableau.rs.html and https://github.com/scipy/scipy/blob/v1.13.1/scipy/integrate/_ivp/dop853_coefficients.py
 template<StateType State>
@@ -735,56 +766,61 @@ struct DOP853Tableau
     // ------------------------------------------------------------
     // DENSE (Hairer structure, explicit reconstruction)
     // ------------------------------------------------------------
-
-    template<typename Problem, std::size_t N>
-    static dense_type make_dense(
-        const Problem& prob,
-        double t,
-        const State& y,
-        const State& y_next,
-        double dt,
-        const std::array<State, N>& k,
-        const State&)
-    {
-
-        std::array<State, stages_extended> ks{};
-
-        for (std::size_t i = 0; i < stages; ++i) {
-            ks[i] = k[i];
-        }
-
-        for (std::size_t i = stages + 1; i < stages_extended; ++i) {
-            State yi = y;
-
-            for (std::size_t j = 0; j < i; ++j)
-                yi = yi + dt * a[i][j] * ks[j];
-
-            ks[i] = prob.f(t + c[i] * dt, yi);
-        }
-
-        std::array<State, interpolator_power> F{};
-
-        F[0] = y_next - y;
-        F[1] = dt * ks[0] - F[0];
-        F[2] = 2.0 * F[0] - dt * (ks[11] + ks[0]);
-
-        for (std::size_t m = 3; m < interpolator_power; ++m)
-        {
-            F[m] = State{};
-
-            for (std::size_t j = 0; j < stages_extended; ++j)
-            {
-                F[m] = F[m] + dt * d[m - 3][j] * ks[j];
-            }
-        }
-
-        return {
-            y,
-            {F[0],F[1],F[2],F[3],F[4],F[5],F[6]},
-            t,
-            dt
-        };
+template<typename Problem, std::size_t N>
+static dense_type make_dense(
+    const Problem& prob,
+    double t,
+    const State& y,
+    const State& y_next,
+    double dt,
+    const std::array<State, N>& k,
+    const State&)
+{
+    std::array<State, stages_extended> ks{};
+    
+    // Copie des étages connus
+    for (std::size_t i = 0; i < stages; ++i) {
+        ks[i] = k[i];
     }
+    
+    // Évaluation des étages supplémentaires pour le dense output
+    for (std::size_t i = stages; i < stages_extended; ++i) {
+        State yi = y;
+        for (std::size_t j = 0; j < i; ++j)
+            yi = yi + dt * a[i][j] * ks[j];
+        ks[i] = prob.f(t + c[i] * dt, yi);
+    }
+    
+    // Calcul des F_j selon Hairer
+    std::array<State, interpolator_power> F{};
+    
+    // F[0] = y1 - y0
+    F[0] = y_next - y;
+    
+    // F[1] = dt * f(t0, y0) - F[0]
+    F[1] = dt * ks[0] - F[0];
+    
+    // F[2] = 2*F[0] - dt*(f(t0+dt, y1) + f(t0, y0))
+    // Note: ks[11] correspond à f(t0+dt, y1) (voir tableau c[11]=1.0)
+    F[2] = 2.0 * F[0] - dt * (ks[11] + ks[0]);
+    
+    // F[3] à F[6] avec les coefficients d
+    for (std::size_t m = 3; m < interpolator_power; ++m) {
+        F[m] = State{};
+        for (std::size_t j = 0; j < stages_extended; ++j) {
+            // La formule correcte: F[m] = dt * Σ d_{m-3,j} * k_j
+            F[m] = F[m] + dt * d[m - 3][j] * ks[j];
+        }
+    }
+    
+    return {
+        y,
+        {F[0], F[1], F[2], F[3], F[4], F[5], F[6]},
+        t,
+        dt
+    };
+}
+
 };
 
 } // namespace ode
