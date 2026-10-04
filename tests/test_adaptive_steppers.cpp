@@ -180,6 +180,13 @@ TEST_CASE("RK45 - dense output through t_eval", "[rk45][dense]")
 
     auto sol = solve_ivp(prob, RK45Dense{}, opts);
 
+    for(size_t i = 0; i < sol.t.size(); ++i)
+    {
+        double exact = std::exp(-sol.t[i]);
+
+        std::cout << "t = " << sol.t[i] << ", y = " << sol.y[i] << ", exact = " << exact << std::endl;
+    }
+
     REQUIRE(sol.t.size() == 5);
     for (size_t i = 0; i < sol.t.size(); ++i) {
         double exact = std::exp(-sol.t[i]);
