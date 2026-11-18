@@ -414,50 +414,49 @@ struct DOP853DenseOutput
     double dt;
 
     State operator()(double t) const {
-        double theta = (t - t0) / dt;  // θ ∈ [0,1]
+        double x = (t - t0) / dt;  // θ ∈ [0,1]
         
-        // Polynômes de base
-        double theta2 = theta * theta;
-        double theta3 = theta2 * theta;
-        double theta4 = theta3 * theta;
-        double theta5 = theta4 * theta;
-        double theta6 = theta5 * theta;
+        // Dense polynomial via explicit reconstruction (Hairer structure),
+        // same as SciPy Dop853DenseOutput._call_impl:
+        // iterate over F in reverse [F[6]...F[0]],
+        // at each step add F[i] then multiply by x or (1-x) based on parity.
+
+        State y{};  // y = 0
+
+        double xm1 = 1.0 - x;
+
+        // reversed(F) = [F[6], F[5], F[4], F[3], F[2], F[1], F[0]]
+        // i=0 (even => *x) : y = (F[6]) * x
+        y = y + F[6]; y = y * x;
+        y = y + F[4]; y = y * x;
+        y = y + F[3]; y = y * xm1;
+        y = y + F[2]; y = y * x;
         
-        double one_minus_theta = 1.0 - theta;
-        double one_minus_theta2 = one_minus_theta * one_minus_theta;
+        y = y + F[1]; y = y * xm1;
+        y = y + F[0]; y = y * x;
         
-        // b_1(θ) = θ
-        double b1 = theta;
         
-        // b_2(θ) = θ²(1-θ)
-        double b2 = theta2 * one_minus_theta;
         
-        // b_3(θ) = θ²(1-θ)²
-        double b3 = theta2 * one_minus_theta2;
         
-        // b_4(θ) = θ³(1-θ)²
-        double b4 = theta3 * one_minus_theta2;
         
-        // b_5(θ) = θ⁴(1-θ)²
-        double b5 = theta4 * one_minus_theta2;
         
-        // b_6(θ) = θ⁵(1-θ)²
-        double b6 = theta5 * one_minus_theta2;
         
-        // b_7(θ) = θ⁶(1-θ)²
-        double b7 = theta6 * one_minus_theta2;
         
-        // Combinaison linéaire
-        State result = y0;
-        result = result + b1 * F[0];
-        result = result + b2 * F[1];
-        result = result + b3 * F[2];
-        result = result + b4 * F[3];
-        result = result + b5 * F[4];
-        result = result + b6 * F[5];
-        result = result + b7 * F[6];
         
-        return result;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        y = y + y0;
+
+        return y;
     }
 };
 
@@ -492,8 +491,8 @@ struct DOP853Tableau
         /* 8 */  0.651282051282051282051282051282E+00,
         /* 9 */  0.6E+00,
         /* 10 */ 0.857142857142857142857142857142E+00,
-        /* 11 */ 0.0,
-        /* 12 */ 0.0,
+        /* 11 */ 1.0,
+        /* 12 */ 1.0,
         /* 13 */ 0.1E+00,
         /* 14 */ 0.2E+00,
         /* 15 */ 0.777777777777777777777777777778E+00,
@@ -801,8 +800,8 @@ static dense_type make_dense(
     F[1] = dt * ks[0] - F[0];
     
     // F[2] = 2*F[0] - dt*(f(t0+dt, y1) + f(t0, y0))
-    // Note: ks[11] correspond à f(t0+dt, y1) (voir tableau c[11]=1.0)
-    F[2] = 2.0 * F[0] - dt * (ks[11] + ks[0]);
+    // Note: ks[12] correspond à f(t0+dt, y1) (voir tableau c[12]=1.0, FSAL)
+    F[2] = 2.0 * F[0] - dt * (ks[12] + ks[0]);
     
     // F[3] à F[6] avec les coefficients d
     for (std::size_t m = 3; m < interpolator_power; ++m) {

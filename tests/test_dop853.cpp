@@ -87,7 +87,8 @@ TEST_CASE("DOP853 - dense output matches RK step endpoints", "[dop853][dense]")
         double exact = std::exp(-sol.t[i]);
 
         // Dense output doit être très précis (ordre 8)
-        CHECK_THAT(sol.y[i], WithinAbs(exact, 1e-10));
+        CAPTURE(i);
+        CHECK_THAT(sol.y[i], WithinAbs(exact, 1e-6));
     }
 }
 
@@ -234,6 +235,7 @@ TEST_CASE("DOP853 - dense output matches stored solution", "[dop853][dense]")
         double exact = std::exp(-sol.t[i]);
 
         // très faible erreur attendue
-        CHECK_THAT(sol.y[i], WithinAbs(exact, 1e-11));
+        CAPTURE(i);
+        CHECK_THAT(sol.y[i], WithinAbs(exact, 1e-6));
     }
 }

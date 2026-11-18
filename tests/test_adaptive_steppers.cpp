@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 #include "test_problems.hpp"
 #include "ode.hpp"
