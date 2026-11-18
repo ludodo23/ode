@@ -3,8 +3,9 @@ find_package(Catch2 3 REQUIRED)
 add_executable(ode_tests
     test_fixed_steppers.cpp
     test_adaptive_steppers.cpp
-    test_verlet.cpp
+    test_symplectic.cpp
     test_state_and_concepts.cpp
+    test_dop853.cpp
 )
 
 target_link_libraries(ode_tests PRIVATE

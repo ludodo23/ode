@@ -30,9 +30,10 @@ namespace ode {
  * @tparam Tableau Butcher tableau provider.
  */
 // TODO mettre le Stages dans le tableau
-template<typename Problem, std::size_t Stages, typename Tableau>
+template<typename Problem, typename Tableau>
 struct ExplicitRKStepper {
     using State = typename Problem::state_type;
+    static constexpr std::size_t Stages = Tableau::stages;
 
     StepResult<State> step(const Problem& prob,
                            double t,
@@ -67,13 +68,13 @@ struct ExplicitRKStepper {
 // ─────────────────────────────────────────────────────────────────────────────
 
 template<typename Problem>
-using EulerStepper = ExplicitRKStepper<Problem, 1, EulerTableau>;
+using EulerStepper = ExplicitRKStepper<Problem, EulerTableau>;
 
 template<typename Problem>
-using RK2Stepper = ExplicitRKStepper<Problem, 2, RK2Tableau>;
+using RK2Stepper = ExplicitRKStepper<Problem, RK2Tableau>;
 
 template<typename Problem>
-using RK4Stepper = ExplicitRKStepper<Problem, 4, RK4Tableau>;
+using RK4Stepper = ExplicitRKStepper<Problem, RK4Tableau>;
 
 // ════════════════════════════════════════════════════════════════════════════
 // Méthodes ADAPTATIVES (embedded RK)
@@ -101,10 +102,10 @@ using RK4Stepper = ExplicitRKStepper<Problem, 4, RK4Tableau>;
  */
 // TODO: mettre le Stages dans le tableau.
 template<typename Problem,
-         std::size_t Stages,
          typename Tableau>
 struct EmbeddedRKStepper {
     using State  = typename Problem::state_type;
+    static constexpr std::size_t Stages = Tableau::stages;
     using Result = AdaptiveStepResult<State, typename Tableau::dense_type, typename Tableau::error_type>;
 
     /**
@@ -181,7 +182,7 @@ struct EmbeddedRKStepper {
  * This struct implements the RK23 method, which is a 3-stage embedded Runge-Kutta method of order 2(3). It uses the RK23Tableau for the coefficients and the RK23DenseOutput for interpolation. The step() method computes both the high-order and low-order solutions, estimates the error, and constructs the dense output polynomial for interpolation within the step.
  */
 template<typename Problem>
-using RK23Stepper = EmbeddedRKStepper<Problem, 3, RK23Tableau<typename Problem::state_type>>;
+using RK23Stepper = EmbeddedRKStepper<Problem, RK23Tableau<typename Problem::state_type>>;
 
 
 /**
@@ -190,7 +191,8 @@ using RK23Stepper = EmbeddedRKStepper<Problem, 3, RK23Tableau<typename Problem::
  * This struct implements the RK45 method, which is a 6-stage embedded Runge-Kutta method of order 4(5). It uses the RK45Tableau for the coefficients and the RK45DenseOutput for interpolation. The step() method computes both the high-order and low-order solutions, estimates the error, and constructs the dense output polynomial for interpolation within the step.
  */
 template<typename Problem>
-using RK45Stepper = EmbeddedRKStepper<Problem, 6, RK45Tableau<typename Problem::state_type>>;
+using RK45Stepper = EmbeddedRKStepper<Problem, RK45Tableau<typename Problem::state_type>>;
 
-
+template<typename Problem>
+using Dop853Stepper = EmbeddedRKStepper<Problem, DOP853Tableau<typename Problem::state_type>>;
 } // namespace ode
